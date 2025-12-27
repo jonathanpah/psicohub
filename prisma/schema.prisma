@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  crp           String?
+  phone         String?
+  specialties   String[]
+  avatar        String?
+  patients      Patient[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Patient {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  email         String?
+  phone         String?
+  birthDate     DateTime?
+  cpf           String?
+  address       String?
+  guardian      String?
+  guardianPhone String?
+  notes         String?
+  status        PatientStatus @default(ACTIVE)
+  sessionPrice  Decimal?      @db.Decimal(10, 2)
+  sessions      Session[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model Session {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dateTime      DateTime
+  duration      Int           @default(50)
+  status        SessionStatus @default(SCHEDULED)
+  clinicalNotes String?       @db.Text
+  observations  String?
+  payment       Payment?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([patientId])
+  @@index([dateTime])
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  sessionId  String        @unique
+  session    Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  amount     Decimal       @db.Decimal(10, 2)
+  status     PaymentStatus @default(PENDING)
+  method     String?
+  paidAt     DateTime?
+  receiptUrl String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}

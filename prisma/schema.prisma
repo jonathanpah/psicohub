@@ -12,10 +12,18 @@ model User {
   email         String    @unique
   name          String
   password      String
+  cpf           String?
   crp           String?
   phone         String?
   specialties   String[]
   avatar        String?
+
+  // Dados da clínica
+  clinicName    String?
+  clinicCnpj    String?
+  clinicAddress String?
+  clinicPhone   String?
+
   patients      Patient[]
   sessions      Session[]
   createdAt     DateTime  @default(now())

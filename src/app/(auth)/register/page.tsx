@@ -21,14 +21,16 @@ export default function RegisterPage() {
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
     const email = formData.get("email") as string
-    const password = formData.get("password") as string
+    const phone = formData.get("phone") as string
+    const cpf = formData.get("cpf") as string
     const crp = formData.get("crp") as string
+    const password = formData.get("password") as string
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, crp }),
+        body: JSON.stringify({ name, email, phone, cpf, crp, password }),
       })
 
       const data = await response.json()
@@ -46,10 +48,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Psicohub</CardTitle>
+          <CardTitle className="text-2xl font-bold">PsicoHUB</CardTitle>
           <CardDescription>Crie sua conta gratuita</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -60,17 +62,17 @@ export default function RegisterPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="name">Nome completo</Label>
+              <Label htmlFor="name">Nome completo *</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
-                placeholder="Seu nome"
+                placeholder="Seu nome completo"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 name="email"
@@ -80,7 +82,27 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="crp">CRP (opcional)</Label>
+              <Label htmlFor="phone">Telefone *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="(00) 00000-0000"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF *</Label>
+              <Input
+                id="cpf"
+                name="cpf"
+                type="text"
+                placeholder="000.000.000-00"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="crp">CRP</Label>
               <Input
                 id="crp"
                 name="crp"
@@ -89,7 +111,7 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha *</Label>
               <Input
                 id="password"
                 name="password"

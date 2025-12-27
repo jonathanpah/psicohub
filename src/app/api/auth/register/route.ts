@@ -6,14 +6,16 @@ import { prisma } from "@/lib/prisma"
 const registerSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  phone: z.string().min(10, "Telefone inválido"),
+  cpf: z.string().min(11, "CPF inválido"),
   crp: z.string().optional(),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
 })
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, password, crp } = registerSchema.parse(body)
+    const { name, email, phone, cpf, crp, password } = registerSchema.parse(body)
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -32,8 +34,10 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        password: hashedPassword,
+        phone,
+        cpf,
         crp,
+        password: hashedPassword,
       },
     })
 

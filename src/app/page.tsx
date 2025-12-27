@@ -63,7 +63,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Psicohub</h1>
+          <h1 className="text-2xl font-bold text-gray-900">PsicoHUB</h1>
           <div className="flex items-center gap-4">
             <Link href="/login">
               <Button variant="ghost">Entrar</Button>
@@ -189,7 +189,7 @@ export default function LandingPage() {
       <footer className="py-8 px-4 border-t border-gray-100">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-gray-600">
-            &copy; {new Date().getFullYear()} Psicohub. Todos os direitos
+            &copy; {new Date().getFullYear()} PsicoHUB. Todos os direitos
             reservados.
           </div>
           <div className="flex gap-6 text-sm text-gray-500">

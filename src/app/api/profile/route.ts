@@ -13,6 +13,15 @@ const updateProfileSchema = z.object({
   clinicCnpj: z.string().optional(),
   clinicAddress: z.string().optional(),
   clinicPhone: z.string().optional(),
+  // Configurações do recibo
+  receiptShowName: z.boolean().optional(),
+  receiptShowCpf: z.boolean().optional(),
+  receiptShowCrp: z.boolean().optional(),
+  receiptShowPhone: z.boolean().optional(),
+  receiptShowClinicName: z.boolean().optional(),
+  receiptShowClinicCnpj: z.boolean().optional(),
+  receiptShowClinicAddress: z.boolean().optional(),
+  receiptShowClinicPhone: z.boolean().optional(),
 })
 
 export async function GET() {
@@ -36,10 +45,20 @@ export async function GET() {
         cpf: true,
         crp: true,
         specialties: true,
+        avatar: true,
         clinicName: true,
         clinicCnpj: true,
         clinicAddress: true,
         clinicPhone: true,
+        // Configurações do recibo
+        receiptShowName: true,
+        receiptShowCpf: true,
+        receiptShowCrp: true,
+        receiptShowPhone: true,
+        receiptShowClinicName: true,
+        receiptShowClinicCnpj: true,
+        receiptShowClinicAddress: true,
+        receiptShowClinicPhone: true,
       },
     })
 
@@ -86,6 +105,15 @@ export async function PUT(request: Request) {
         clinicCnpj: data.clinicCnpj,
         clinicAddress: data.clinicAddress,
         clinicPhone: data.clinicPhone,
+        // Configurações do recibo
+        ...(data.receiptShowName !== undefined && { receiptShowName: data.receiptShowName }),
+        ...(data.receiptShowCpf !== undefined && { receiptShowCpf: data.receiptShowCpf }),
+        ...(data.receiptShowCrp !== undefined && { receiptShowCrp: data.receiptShowCrp }),
+        ...(data.receiptShowPhone !== undefined && { receiptShowPhone: data.receiptShowPhone }),
+        ...(data.receiptShowClinicName !== undefined && { receiptShowClinicName: data.receiptShowClinicName }),
+        ...(data.receiptShowClinicCnpj !== undefined && { receiptShowClinicCnpj: data.receiptShowClinicCnpj }),
+        ...(data.receiptShowClinicAddress !== undefined && { receiptShowClinicAddress: data.receiptShowClinicAddress }),
+        ...(data.receiptShowClinicPhone !== undefined && { receiptShowClinicPhone: data.receiptShowClinicPhone }),
       },
       select: {
         id: true,
@@ -95,10 +123,20 @@ export async function PUT(request: Request) {
         cpf: true,
         crp: true,
         specialties: true,
+        avatar: true,
         clinicName: true,
         clinicCnpj: true,
         clinicAddress: true,
         clinicPhone: true,
+        // Configurações do recibo
+        receiptShowName: true,
+        receiptShowCpf: true,
+        receiptShowCrp: true,
+        receiptShowPhone: true,
+        receiptShowClinicName: true,
+        receiptShowClinicCnpj: true,
+        receiptShowClinicAddress: true,
+        receiptShowClinicPhone: true,
       },
     })
 

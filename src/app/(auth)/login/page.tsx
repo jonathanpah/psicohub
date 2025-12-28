@@ -7,7 +7,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -44,53 +43,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">PsicoHUB</CardTitle>
-          <CardDescription>Entre na sua conta</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            PsicoHub
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Entre na sua conta
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
+
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm text-gray-600">
+                Email
+              </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 placeholder="seu@email.com"
                 required
+                className="h-11"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm text-gray-600">
+                Senha
+              </Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="******"
+                placeholder="••••••••"
                 required
+                className="h-11"
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <Button
+              type="submit"
+              className="w-full h-11 mt-2"
+              disabled={loading}
+            >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
-            <p className="text-sm text-gray-600 text-center">
-              Não tem uma conta?{" "}
-              <Link href="/register" className="text-blue-600 hover:underline">
-                Cadastre-se
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+        </div>
+
+        <p className="text-sm text-gray-500 text-center mt-6">
+          Não tem uma conta?{" "}
+          <Link
+            href="/register"
+            className="text-gray-900 font-medium hover:underline"
+          >
+            Cadastre-se
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

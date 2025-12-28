@@ -47,38 +47,38 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.5rem;
+  --background: oklch(0.995 0 0);
+  --foreground: oklch(0.2 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --popover-foreground: oklch(0.2 0 0);
+  --primary: oklch(0.25 0 0);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.25 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --accent: oklch(0.985 0 0);
+  --accent-foreground: oklch(0.25 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --border: oklch(0.94 0 0);
+  --input: oklch(0.94 0 0);
+  --ring: oklch(0.7 0 0);
+  --chart-1: oklch(0.55 0.15 250);
+  --chart-2: oklch(0.6 0.1 180);
+  --chart-3: oklch(0.45 0.05 220);
+  --chart-4: oklch(0.7 0.12 80);
+  --chart-5: oklch(0.65 0.1 60);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.3 0 0);
+  --sidebar-primary: oklch(0.25 0 0);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.975 0 0);
+  --sidebar-accent-foreground: oklch(0.2 0 0);
+  --sidebar-border: oklch(0.95 0 0);
+  --sidebar-ring: oklch(0.7 0 0);
 }
 
 .dark {
@@ -122,4 +122,85 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* FullCalendar Styles - Apple-inspired */
+.fc {
+  --fc-border-color: oklch(0.94 0 0);
+  --fc-button-bg-color: oklch(0.25 0 0);
+  --fc-button-border-color: oklch(0.25 0 0);
+  --fc-button-hover-bg-color: oklch(0.35 0 0);
+  --fc-button-hover-border-color: oklch(0.35 0 0);
+  --fc-button-active-bg-color: oklch(0.2 0 0);
+  --fc-button-active-border-color: oklch(0.2 0 0);
+  --fc-today-bg-color: oklch(0.985 0 0);
+  font-family: inherit;
+}
+
+.fc .fc-button {
+  @apply text-sm font-medium rounded-md px-4 py-2 shadow-none;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  @apply bg-primary;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-lg font-medium tracking-tight;
+}
+
+.fc .fc-col-header-cell {
+  @apply py-3 text-xs font-medium text-gray-400 uppercase tracking-wider;
+}
+
+.fc .fc-timegrid-slot {
+  height: 3rem;
+}
+
+.fc .fc-timegrid-slot-label {
+  @apply text-xs text-gray-400 font-light;
+}
+
+.fc .fc-event {
+  @apply rounded border-0 cursor-pointer shadow-none;
+}
+
+.fc .fc-event:hover {
+  @apply opacity-80;
+}
+
+.fc .fc-daygrid-day-number {
+  @apply text-sm p-2 font-light;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: oklch(0.985 0 0);
+}
+
+.fc .fc-timegrid-now-indicator-line {
+  border-color: oklch(0.55 0.2 25);
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: oklch(0.55 0.2 25);
+}
+
+/* Month view events - transparent background */
+.fc .fc-daygrid-event {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.fc .fc-daygrid-event .fc-event-main {
+  padding: 0;
+}
+
+.fc .fc-daygrid-event-dot {
+  display: none;
+}
+
+/* Remove o fundo padrão do FullCalendar em eventos do mês */
+.fc-daygrid-event-harness .fc-event {
+  background: transparent !important;
 }

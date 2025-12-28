@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PsicoHUB - Gestão para Psicólogos",
+  title: "PsicoHub - Gestão & Psicologia",
   description: "Sistema completo para psicólogos gerenciarem pacientes, agenda, prontuário e financeiro.",
 };
 

@@ -8,81 +8,180 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  password      String
-  cpf           String?
-  crp           String?
-  phone         String?
-  specialties   String[]
-  avatar        String?
-
-  // Dados da clínica
-  clinicName    String?
-  clinicCnpj    String?
-  clinicAddress String?
-  clinicPhone   String?
-
-  patients      Patient[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  name                     String
+  password                 String
+  crp                      String?
+  phone                    String?
+  specialties              String[]
+  avatar                   String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  clinicAddress            String?
+  clinicCnpj               String?
+  clinicName               String?
+  clinicPhone              String?
+  cpf                      String?
+  receiptShowClinicAddress Boolean   @default(true)
+  receiptShowClinicCnpj    Boolean   @default(true)
+  receiptShowClinicName    Boolean   @default(true)
+  receiptShowClinicPhone   Boolean   @default(false)
+  receiptShowCpf           Boolean   @default(false)
+  receiptShowCrp           Boolean   @default(true)
+  receiptShowName          Boolean   @default(true)
+  receiptShowPhone         Boolean   @default(false)
+  patients                 Patient[]
+  payments                 Payment[]
+  sessions                 Session[]
 }
 
 model Patient {
-  id            String        @id @default(cuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  email         String?
-  phone         String?
-  birthDate     DateTime?
-  cpf           String?
-  address       String?
-  guardian      String?
-  guardianPhone String?
-  notes         String?
-  status        PatientStatus @default(ACTIVE)
-  sessionPrice  Decimal?      @db.Decimal(10, 2)
-  sessions      Session[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String           @id @default(cuid())
+  userId           String
+  name             String
+  email            String?
+  phone            String?
+  birthDate        DateTime?
+  cpf              String?
+  address          String?
+  guardian         String?
+  guardianPhone    String?
+  notes            String?
+  status           PatientStatus    @default(ACTIVE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  guardianAddress  String?
+  guardianCpf      String?
+  guardianEmail    String?
+  guardianRelation String?
+  documents        Document[]
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingPlans     PricingPlan[]
+  sessions         Session[]
+  sessionPackages  SessionPackage[]
 
   @@index([userId])
 }
 
+model PricingPlan {
+  id              String          @id @default(cuid())
+  patientId       String
+  type            PricingType
+  sessionPrice    Decimal?        @db.Decimal(10, 2)
+  packageSessions Int?
+  packagePrice    Decimal?        @db.Decimal(10, 2)
+  startDate       DateTime        @default(now())
+  active          Boolean         @default(true)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  patient         Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sessionPackage  SessionPackage?
+
+  @@index([patientId])
+}
+
+model SessionPackage {
+  id              String        @id @default(cuid())
+  userId          String
+  patientId       String
+  pricingPlanId   String        @unique
+  name            String?
+  totalSessions   Int
+  pricePerSession Decimal       @db.Decimal(10, 2)
+  status          PackageStatus @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  sessions        Session[]
+  patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  pricingPlan     PricingPlan   @relation(fields: [pricingPlanId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([patientId])
+}
+
 model Session {
-  id            String        @id @default(cuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  patientId     String
-  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  dateTime      DateTime
-  duration      Int           @default(50)
-  status        SessionStatus @default(SCHEDULED)
-  clinicalNotes String?       @db.Text
-  observations  String?
-  payment       Payment?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                String          @id @default(cuid())
+  userId            String
+  patientId         String
+  dateTime          DateTime
+  duration          Int             @default(50)
+  status            SessionStatus   @default(SCHEDULED)
+  clinicalNotes     String?
+  observations      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  isCourtesy        Boolean         @default(false)
+  packageId         String?
+  packageOrder      Int?
+  recurrenceCount   Int?
+  recurrenceEndDate DateTime?
+  recurrenceGroupId String?
+  recurrenceIndex   Int?
+  recurrencePattern String?
+  documents         Document[]
+  payment           Payment?
+  package           SessionPackage? @relation(fields: [packageId], references: [id])
+  patient           Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([patientId])
   @@index([dateTime])
+  @@index([packageId])
+  @@index([recurrenceGroupId])
 }
 
 model Payment {
-  id         String        @id @default(cuid())
-  sessionId  String        @unique
-  session    Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  amount     Decimal       @db.Decimal(10, 2)
-  status     PaymentStatus @default(PENDING)
-  method     String?
-  paidAt     DateTime?
-  receiptUrl String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  sessionId       String        @unique
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  method          String?
+  paidAt          DateTime?
+  receiptUrl      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  notes           String?
+  userId          String
+  receiptFileName String?
+  receiptFileSize Int?
+  receiptFileType String?
+  session         Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Document {
+  id          String           @id @default(cuid())
+  patientId   String
+  sessionId   String?
+  name        String
+  description String?
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  category    DocumentCategory
+  uploadedAt  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  patient     Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  session     Session?         @relation(fields: [sessionId], references: [id])
+
+  @@index([patientId])
+  @@index([sessionId])
+  @@index([category])
+}
+
+enum PackageStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 enum PatientStatus {
@@ -103,4 +202,28 @@ enum PaymentStatus {
   PENDING
   PAID
   CANCELLED
+}
+
+enum PricingType {
+  SESSION
+  PACKAGE
+}
+
+enum DocumentCategory {
+  CONTRACT
+  CONSENT_TERM
+  CONFIDENTIALITY_TERM
+  GUARDIAN_AUTHORIZATION
+  PAYMENT_RECEIPT
+  PAYMENT_PROOF
+  INVOICE
+  HEALTH_PLAN_DECLARATION
+  ANAMNESIS
+  PSYCHOLOGICAL_REPORT
+  EXTERNAL_REPORT
+  MEDICAL_EXAM
+  SCHOOL_REPORT
+  PSYCHOLOGICAL_EVALUATION
+  CLINICAL_EVOLUTION
+  OTHER
 }

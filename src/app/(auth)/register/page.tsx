@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { MaskedInput } from "@/components/ui/masked-input"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -48,70 +48,100 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">PsicoHUB</CardTitle>
-          <CardDescription>Crie sua conta gratuita</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] px-4 py-12">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            PsicoHub
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Crie sua conta gratuita
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
+
             <div className="space-y-2">
-              <Label htmlFor="name">Nome completo *</Label>
+              <Label htmlFor="name" className="text-sm text-gray-600">
+                Nome completo
+              </Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
                 placeholder="Seu nome completo"
                 required
+                className="h-11"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email" className="text-sm text-gray-600">
+                Email
+              </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 placeholder="seu@email.com"
                 required
+                className="h-11"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone *</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="(00) 00000-0000"
-                required
-              />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm text-gray-600">
+                  Telefone
+                </Label>
+                <MaskedInput
+                  id="phone"
+                  name="phone"
+                  mask="phone"
+                  placeholder="(00) 00000-0000"
+                  required
+                  className="h-11"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cpf" className="text-sm text-gray-600">
+                  CPF
+                </Label>
+                <MaskedInput
+                  id="cpf"
+                  name="cpf"
+                  mask="cpf"
+                  placeholder="000.000.000-00"
+                  required
+                  className="h-11"
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF *</Label>
-              <Input
-                id="cpf"
-                name="cpf"
-                type="text"
-                placeholder="000.000.000-00"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="crp">CRP</Label>
-              <Input
+              <Label htmlFor="crp" className="text-sm text-gray-600">
+                CRP <span className="text-gray-400">(opcional)</span>
+              </Label>
+              <MaskedInput
                 id="crp"
                 name="crp"
-                type="text"
+                mask="crp"
                 placeholder="00/00000"
+                className="h-11"
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
+              <Label htmlFor="password" className="text-sm text-gray-600">
+                Senha
+              </Label>
               <Input
                 id="password"
                 name="password"
@@ -119,22 +149,30 @@ export default function RegisterPage() {
                 placeholder="Mínimo 6 caracteres"
                 minLength={6}
                 required
+                className="h-11"
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <Button
+              type="submit"
+              className="w-full h-11 mt-2"
+              disabled={loading}
+            >
               {loading ? "Criando conta..." : "Criar conta"}
             </Button>
-            <p className="text-sm text-gray-600 text-center">
-              Já tem uma conta?{" "}
-              <Link href="/login" className="text-blue-600 hover:underline">
-                Entrar
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+        </div>
+
+        <p className="text-sm text-gray-500 text-center mt-6">
+          Já tem uma conta?{" "}
+          <Link
+            href="/login"
+            className="text-gray-900 font-medium hover:underline"
+          >
+            Entrar
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

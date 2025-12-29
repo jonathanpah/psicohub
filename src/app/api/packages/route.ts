@@ -3,6 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+import { generatePackageCode } from "@/lib/recurrence"
 
 // Schema para criação de pacote com sessões
 const createPackageSchema = z.object({
@@ -231,13 +232,13 @@ export async function POST(request: Request) {
         },
       })
 
-      // 2. Criar SessionPackage
+      // 2. Criar SessionPackage com código automático
       const sessionPackage = await tx.sessionPackage.create({
         data: {
           userId: session.user.id,
           patientId: data.patientId,
           pricingPlanId: pricingPlan.id,
-          name: data.packageName || `${data.type === "PACKAGE" ? "Pacote" : "Sessões"} - ${new Date().toLocaleDateString("pt-BR")}`,
+          name: generatePackageCode(),
           totalSessions,
           pricePerSession,
           notes: data.notes,

@@ -97,3 +97,28 @@ export function getRecurrenceDescription(pattern: RecurrencePattern, count: numb
   }
   return `${count} sessões, ${patternText[pattern]}`
 }
+
+/**
+ * Gera código único para pacote/agendamento
+ * Formato: AGAAMMDDHHMMSS
+ * - AG: prefixo fixo (Agendamento)
+ * - AA: últimos 2 dígitos do ano
+ * - MM: mês (2 dígitos)
+ * - DD: dia (2 dígitos)
+ * - HH: hora (2 dígitos)
+ * - MM: minutos (2 dígitos)
+ * - SS: segundos (2 dígitos)
+ *
+ * @returns Código no formato AGAAMMDDHHMMSS (ex: "AG250102143025")
+ */
+export function generatePackageCode(): string {
+  const now = new Date()
+  const year = now.getFullYear().toString().slice(-2)
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  const hours = String(now.getHours()).padStart(2, "0")
+  const minutes = String(now.getMinutes()).padStart(2, "0")
+  const seconds = String(now.getSeconds()).padStart(2, "0")
+
+  return `AG${year}${month}${day}${hours}${minutes}${seconds}`
+}

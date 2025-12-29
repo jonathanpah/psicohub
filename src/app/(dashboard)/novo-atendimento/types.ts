@@ -45,7 +45,6 @@ export interface NovoAtendimentoFormState {
   sessionPrice: string
   totalSessions: string
   packagePrice: string
-  packageName: string
   notes: string
   isPaid: boolean
   paymentMethod: string

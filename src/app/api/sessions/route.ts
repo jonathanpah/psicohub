@@ -3,7 +3,7 @@ import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
-import { generateRecurrenceDates, generateRecurrenceGroupId } from "@/lib/recurrence"
+import { generateRecurrenceDates, generateRecurrenceGroupId, generatePackageCode } from "@/lib/recurrence"
 import { logSessionEvent } from "@/lib/audit"
 import { sanitizeText } from "@/lib/sanitize"
 
@@ -265,47 +265,76 @@ export async function POST(request: Request) {
         }, { status: 409 })
       }
 
-      // Criar todas as sessões
-      const createdSessions = []
-      for (let i = 0; i < dates.length; i++) {
-        const newSession = await prisma.session.create({
+      // Criar pacote, sessões e pagamentos em uma transação
+      const result = await prisma.$transaction(async (tx) => {
+        // Criar PricingPlan
+        const pricingPlan = await tx.pricingPlan.create({
+          data: {
+            patientId: data.patientId,
+            type: "SESSION",
+            sessionPrice: sessionPrice,
+            active: true,
+          },
+        })
+
+        // Criar SessionPackage com código automático
+        const sessionPackage = await tx.sessionPackage.create({
           data: {
             userId: session.user.id,
             patientId: data.patientId,
-            dateTime: dates[i],
-            duration: data.duration,
-            isCourtesy: data.isCourtesy || false,
-            observations: data.observations ? sanitizeText(data.observations) : null,
-            recurrenceGroupId,
-            recurrencePattern: data.recurrencePattern,
-            recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
-            recurrenceCount: dates.length,
-            recurrenceIndex: i + 1,
+            pricingPlanId: pricingPlan.id,
+            name: generatePackageCode(),
+            totalSessions: dates.length,
+            pricePerSession: sessionPrice,
           },
         })
-        createdSessions.push(newSession)
 
-        // Criar pagamento se não for cortesia
-        if (!data.isCourtesy) {
-          await prisma.payment.create({
+        // Criar todas as sessões
+        const createdSessions = []
+        for (let i = 0; i < dates.length; i++) {
+          const newSession = await tx.session.create({
             data: {
               userId: session.user.id,
-              sessionId: newSession.id,
-              amount: sessionPrice,
-              status: data.isPaid ? "PAID" : "PENDING",
-              method: data.isPaid && data.paymentMethod ? data.paymentMethod : null,
-              paidAt: data.isPaid ? new Date() : null,
-              receiptUrl: data.isPaid && data.receiptUrl ? data.receiptUrl : null,
-              receiptFileName: data.isPaid && data.receiptFileName ? data.receiptFileName : null,
-              receiptFileType: data.isPaid && data.receiptFileType ? data.receiptFileType : null,
-              receiptFileSize: data.isPaid && data.receiptFileSize ? data.receiptFileSize : null,
+              patientId: data.patientId,
+              dateTime: dates[i],
+              duration: data.duration,
+              isCourtesy: data.isCourtesy || false,
+              observations: data.observations ? sanitizeText(data.observations) : null,
+              packageId: sessionPackage.id,
+              packageOrder: i + 1,
+              recurrenceGroupId,
+              recurrencePattern: data.recurrencePattern,
+              recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
+              recurrenceCount: dates.length,
+              recurrenceIndex: i + 1,
             },
           })
+          createdSessions.push(newSession)
+
+          // Criar pagamento se não for cortesia
+          if (!data.isCourtesy) {
+            await tx.payment.create({
+              data: {
+                userId: session.user.id,
+                sessionId: newSession.id,
+                amount: sessionPrice,
+                status: data.isPaid ? "PAID" : "PENDING",
+                method: data.isPaid && data.paymentMethod ? data.paymentMethod : null,
+                paidAt: data.isPaid ? new Date() : null,
+                receiptUrl: data.isPaid && data.receiptUrl ? data.receiptUrl : null,
+                receiptFileName: data.isPaid && data.receiptFileName ? data.receiptFileName : null,
+                receiptFileType: data.isPaid && data.receiptFileType ? data.receiptFileType : null,
+                receiptFileSize: data.isPaid && data.receiptFileSize ? data.receiptFileSize : null,
+              },
+            })
+          }
         }
-      }
+
+        return { sessionPackage, createdSessions }
+      })
 
       // Registrar auditoria para cada sessão criada
-      for (const s of createdSessions) {
+      for (const s of result.createdSessions) {
         await logSessionEvent("SESSION_CREATE", session.user.id, s.id, {
           patientId: data.patientId,
           isRecurring: true,
@@ -315,9 +344,10 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         recurrenceGroupId,
-        sessionsCreated: createdSessions.length,
-        firstSession: createdSessions[0],
-        message: `${createdSessions.length} sessões criadas com sucesso`,
+        sessionsCreated: result.createdSessions.length,
+        firstSession: result.createdSessions[0],
+        packageCode: result.sessionPackage.name,
+        message: `${result.createdSessions.length} sessões criadas com sucesso`,
         isPaid: data.isPaid || false,
       }, { status: 201 })
     }
@@ -334,52 +364,85 @@ export async function POST(request: Request) {
       )
     }
 
-    const newSession = await prisma.session.create({
-      data: {
-        userId: session.user.id,
-        patientId: data.patientId,
-        dateTime,
-        duration: data.duration,
-        isCourtesy: data.isCourtesy || false,
-        observations: data.observations ? sanitizeText(data.observations) : null,
-        clinicalNotes: data.clinicalNotes ? sanitizeText(data.clinicalNotes) : null,
-      },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-          },
-        },
-      },
-    })
-
-    // Criar pagamento automaticamente se não for sessão cortesia
-    if (!data.isCourtesy) {
-      await prisma.payment.create({
+    // Criar pacote, sessão e pagamento em uma transação
+    const result = await prisma.$transaction(async (tx) => {
+      // Criar PricingPlan
+      const pricingPlan = await tx.pricingPlan.create({
         data: {
-          userId: session.user.id,
-          sessionId: newSession.id,
-          amount: sessionPrice,
-          status: data.isPaid ? "PAID" : "PENDING",
-          method: data.isPaid && data.paymentMethod ? data.paymentMethod : null,
-          paidAt: data.isPaid ? new Date() : null,
-          receiptUrl: data.isPaid && data.receiptUrl ? data.receiptUrl : null,
-          receiptFileName: data.isPaid && data.receiptFileName ? data.receiptFileName : null,
-          receiptFileType: data.isPaid && data.receiptFileType ? data.receiptFileType : null,
-          receiptFileSize: data.isPaid && data.receiptFileSize ? data.receiptFileSize : null,
+          patientId: data.patientId,
+          type: "SESSION",
+          sessionPrice: sessionPrice,
+          active: true,
         },
       })
-    }
+
+      // Criar SessionPackage com código automático
+      const sessionPackage = await tx.sessionPackage.create({
+        data: {
+          userId: session.user.id,
+          patientId: data.patientId,
+          pricingPlanId: pricingPlan.id,
+          name: generatePackageCode(),
+          totalSessions: 1,
+          pricePerSession: sessionPrice,
+        },
+      })
+
+      // Criar sessão
+      const newSession = await tx.session.create({
+        data: {
+          userId: session.user.id,
+          patientId: data.patientId,
+          dateTime,
+          duration: data.duration,
+          isCourtesy: data.isCourtesy || false,
+          observations: data.observations ? sanitizeText(data.observations) : null,
+          clinicalNotes: data.clinicalNotes ? sanitizeText(data.clinicalNotes) : null,
+          packageId: sessionPackage.id,
+          packageOrder: 1,
+        },
+        include: {
+          patient: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      })
+
+      // Criar pagamento automaticamente se não for sessão cortesia
+      if (!data.isCourtesy) {
+        await tx.payment.create({
+          data: {
+            userId: session.user.id,
+            sessionId: newSession.id,
+            amount: sessionPrice,
+            status: data.isPaid ? "PAID" : "PENDING",
+            method: data.isPaid && data.paymentMethod ? data.paymentMethod : null,
+            paidAt: data.isPaid ? new Date() : null,
+            receiptUrl: data.isPaid && data.receiptUrl ? data.receiptUrl : null,
+            receiptFileName: data.isPaid && data.receiptFileName ? data.receiptFileName : null,
+            receiptFileType: data.isPaid && data.receiptFileType ? data.receiptFileType : null,
+            receiptFileSize: data.isPaid && data.receiptFileSize ? data.receiptFileSize : null,
+          },
+        })
+      }
+
+      return { newSession, packageCode: sessionPackage.name }
+    })
 
     // Registrar auditoria
-    await logSessionEvent("SESSION_CREATE", session.user.id, newSession.id, {
+    await logSessionEvent("SESSION_CREATE", session.user.id, result.newSession.id, {
       patientId: data.patientId,
     }, request)
 
-    return NextResponse.json(newSession, { status: 201 })
+    return NextResponse.json({
+      ...result.newSession,
+      packageCode: result.packageCode,
+    }, { status: 201 })
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

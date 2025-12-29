@@ -12,13 +12,11 @@ interface TypeSelectorProps {
   sessionPrice: string
   totalSessions: string
   packagePrice: string
-  packageName: string
   calculatedPricePerSession: number
   onTypeChange: (type: "SESSION" | "PACKAGE") => void
   onSessionPriceChange: (value: string) => void
   onTotalSessionsChange: (value: string) => void
   onPackagePriceChange: (value: string) => void
-  onPackageNameChange: (value: string) => void
 }
 
 export function TypeSelector({
@@ -26,13 +24,11 @@ export function TypeSelector({
   sessionPrice,
   totalSessions,
   packagePrice,
-  packageName,
   calculatedPricePerSession,
   onTypeChange,
   onSessionPriceChange,
   onTotalSessionsChange,
   onPackagePriceChange,
-  onPackageNameChange,
 }: TypeSelectorProps) {
   return (
     <Card>
@@ -128,18 +124,6 @@ export function TypeSelector({
                 </p>
               </div>
             )}
-          </div>
-        )}
-
-        {type === "PACKAGE" && (
-          <div className="space-y-2">
-            <Label htmlFor="packageName">Nome do Pacote (opcional)</Label>
-            <Input
-              id="packageName"
-              value={packageName}
-              onChange={(e) => onPackageNameChange(e.target.value)}
-              placeholder="Ex: Pacote Janeiro 2026"
-            />
           </div>
         )}
       </CardContent>

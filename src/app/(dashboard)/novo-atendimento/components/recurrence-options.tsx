@@ -29,6 +29,8 @@ interface RecurrenceOptionsProps {
   generatedDates: Date[]
   conflicts: string[]
   isChecking: boolean
+  // Se true, a quantidade é fixa (vem do total de sessões do pacote)
+  countFixed?: boolean
 }
 
 export function RecurrenceOptions({
@@ -41,6 +43,7 @@ export function RecurrenceOptions({
   generatedDates,
   conflicts,
   isChecking,
+  countFixed = false,
 }: RecurrenceOptionsProps) {
   const hasConflicts = conflicts.length > 0
 
@@ -89,25 +92,27 @@ export function RecurrenceOptions({
               </Select>
             </div>
 
-            {/* Quantidade */}
-            <div className="space-y-2">
-              <Label className="text-xs text-gray-500">Quantidade de sessões</Label>
-              <Select
-                value={count.toString()}
-                onValueChange={(value) => onCountChange(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RECURRENCE_COUNTS.map((n) => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n} sessões
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Quantidade - só mostra seletor se não for fixo (pacote) */}
+            {!countFixed && (
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500">Quantidade de sessões</Label>
+                <Select
+                  value={count.toString()}
+                  onValueChange={(value) => onCountChange(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RECURRENCE_COUNTS.map((n) => (
+                      <SelectItem key={n} value={n.toString()}>
+                        {n} sessões
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Preview das datas */}
             {generatedDates.length > 0 && (

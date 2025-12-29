@@ -72,8 +72,15 @@ export async function GET(
       completed: sessionPackage.sessions.filter(
         (s) => s.status === "COMPLETED"
       ).length,
+      noShow: sessionPackage.sessions.filter(
+        (s) => s.status === "NO_SHOW"
+      ).length,
       cancelled: sessionPackage.sessions.filter(
-        (s) => s.status === "CANCELLED" || s.status === "NO_SHOW"
+        (s) => s.status === "CANCELLED"
+      ).length,
+      // Sessões consumidas = realizadas + faltas (ambas contam para conclusão do pacote)
+      consumed: sessionPackage.sessions.filter(
+        (s) => s.status === "COMPLETED" || s.status === "NO_SHOW"
       ).length,
       remainingSlots: sessionPackage.totalSessions - sessionPackage.sessions.length,
       totalScheduled: sessionPackage.sessions.length,

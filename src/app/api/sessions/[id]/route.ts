@@ -185,10 +185,11 @@ export async function PUT(
     })
 
     // Sincronizar status do pagamento com status da sessão
+    // NOTA: NO_SHOW (falta) NÃO cancela o pagamento - falta é cobrada normalmente
     if (data.status && updatedSession.payment) {
       const paymentStatusMap: Record<string, string | null> = {
-        CANCELLED: "CANCELLED",
-        NO_SHOW: "CANCELLED", // Falta = cancela cobrança
+        CANCELLED: "CANCELLED", // Apenas cancelamento cancela o pagamento
+        // NO_SHOW não altera o pagamento - falta é cobrada
       }
 
       const newPaymentStatus = paymentStatusMap[data.status]
@@ -219,14 +220,18 @@ export async function PUT(
         const allSessionsFinalized = pkg.sessions.every(
           s => s.status === "COMPLETED" || s.status === "CANCELLED" || s.status === "NO_SHOW"
         )
-        const hasCompletedSessions = pkg.sessions.some(s => s.status === "COMPLETED")
+        // Sessões "consumidas" = COMPLETED ou NO_SHOW (falta também consome a sessão do pacote)
+        const hasConsumedSessions = pkg.sessions.some(
+          s => s.status === "COMPLETED" || s.status === "NO_SHOW"
+        )
 
         // Se todas as sessões estão finalizadas (completadas, canceladas ou falta)
-        // E pelo menos uma foi completada, marcar pacote como COMPLETED
+        // E pelo menos uma foi consumida (realizada ou falta), marcar pacote como COMPLETED
+        // Pacote só é CANCELLED se TODAS as sessões foram canceladas
         if (allSessionsFinalized && pkg.sessions.length >= pkg.totalSessions) {
           await prisma.sessionPackage.update({
             where: { id: pkg.id },
-            data: { status: hasCompletedSessions ? "COMPLETED" : "CANCELLED" },
+            data: { status: hasConsumedSessions ? "COMPLETED" : "CANCELLED" },
           })
         }
       }

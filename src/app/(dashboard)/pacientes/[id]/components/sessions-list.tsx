@@ -418,15 +418,14 @@ export function SessionsList({ patient, onDeleteSession, onRefresh }: SessionsLi
                             <span className="text-xs text-gray-400">({session.duration}min)</span>
                           </div>
 
-                          {/* Badges de pacote/recorrência */}
+                          {/* Badge de pacote ou recorrência (prioriza pacote quando ambos existem) */}
                           <div className="flex items-center gap-1.5 mt-1">
-                            {session.package && (
+                            {session.package ? (
                               <Badge variant="outline" className="text-xs py-0 px-1.5 h-5">
                                 <Package className="h-3 w-3 mr-1" />
                                 {session.packageOrder}/{session.package.totalSessions}
                               </Badge>
-                            )}
-                            {session.recurrenceGroupId && (
+                            ) : session.recurrenceGroupId && (
                               <Badge variant="outline" className="text-xs py-0 px-1.5 h-5 text-blue-600 border-blue-200">
                                 🔄 {session.recurrenceIndex}/{session.recurrenceCount}
                               </Badge>

@@ -84,9 +84,14 @@ export async function GET(request: Request) {
       const completedCount = pkg.sessions.filter(
         (s) => s.status === "COMPLETED"
       ).length
-      const cancelledCount = pkg.sessions.filter(
-        (s) => s.status === "CANCELLED" || s.status === "NO_SHOW"
+      const noShowCount = pkg.sessions.filter(
+        (s) => s.status === "NO_SHOW"
       ).length
+      const cancelledCount = pkg.sessions.filter(
+        (s) => s.status === "CANCELLED"
+      ).length
+      // Sessões consumidas = realizadas + faltas
+      const consumedCount = completedCount + noShowCount
       const remainingSlots = pkg.totalSessions - pkg.sessions.length
 
       return {
@@ -94,7 +99,9 @@ export async function GET(request: Request) {
         stats: {
           scheduled: scheduledCount,
           completed: completedCount,
+          noShow: noShowCount,
           cancelled: cancelledCount,
+          consumed: consumedCount,
           remainingSlots,
           totalScheduled: pkg.sessions.length,
         },

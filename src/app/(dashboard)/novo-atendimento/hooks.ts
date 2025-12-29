@@ -48,6 +48,11 @@ export function useNovoAtendimento() {
   const [recurrenceConflicts, setRecurrenceConflicts] = useState<string[]>([])
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false)
 
+  // Para PACOTE, usar totalSessions como quantidade de recorrência
+  const effectiveRecurrenceCount = type === "PACKAGE"
+    ? parseInt(totalSessions) || 1
+    : recurrenceCount
+
   // Ref para controlar navegação após unmount
   const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -135,9 +140,9 @@ export function useNovoAtendimento() {
     return generateRecurrenceDates({
       startDate: startDateTime,
       pattern: recurrencePattern,
-      occurrences: recurrenceCount,
+      occurrences: effectiveRecurrenceCount,
     })
-  }, [isRecurring, sessionSlots, recurrencePattern, recurrenceCount])
+  }, [isRecurring, sessionSlots, recurrencePattern, effectiveRecurrenceCount])
 
   // Verificar conflitos quando as datas mudam
   const checkConflicts = useCallback(async (dates: Date[], duration: number) => {
@@ -366,6 +371,7 @@ export function useNovoAtendimento() {
     setRecurrencePattern,
     recurrenceCount,
     setRecurrenceCount,
+    effectiveRecurrenceCount,
     recurrenceConflicts,
     isCheckingConflicts,
     generatedDates,

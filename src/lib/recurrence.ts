@@ -109,16 +109,34 @@ export function getRecurrenceDescription(pattern: RecurrencePattern, count: numb
  * - MM: minutos (2 dígitos)
  * - SS: segundos (2 dígitos)
  *
+ * Usa fuso horário de São Paulo (America/Sao_Paulo)
+ *
  * @returns Código no formato AGAAMMDDHHMMSS (ex: "AG250102143025")
  */
 export function generatePackageCode(): string {
   const now = new Date()
-  const year = now.getFullYear().toString().slice(-2)
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const day = String(now.getDate()).padStart(2, "0")
-  const hours = String(now.getHours()).padStart(2, "0")
-  const minutes = String(now.getMinutes()).padStart(2, "0")
-  const seconds = String(now.getSeconds()).padStart(2, "0")
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }
+
+  const formatter = new Intl.DateTimeFormat("pt-BR", options)
+  const parts = formatter.formatToParts(now)
+
+  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "00"
+
+  const year = getPart("year").slice(-2)
+  const month = getPart("month")
+  const day = getPart("day")
+  const hours = getPart("hour")
+  const minutes = getPart("minute")
+  const seconds = getPart("second")
 
   return `AG${year}${month}${day}${hours}${minutes}${seconds}`
 }

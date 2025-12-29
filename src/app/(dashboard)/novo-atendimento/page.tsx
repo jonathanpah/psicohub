@@ -54,6 +54,7 @@ function NovoAtendimentoContent() {
     setRecurrencePattern,
     recurrenceCount,
     setRecurrenceCount,
+    effectiveRecurrenceCount,
     recurrenceConflicts,
     isCheckingConflicts,
     generatedDates,
@@ -233,11 +234,12 @@ function NovoAtendimentoContent() {
             onEnabledChange={setIsRecurring}
             pattern={recurrencePattern}
             onPatternChange={setRecurrencePattern}
-            count={recurrenceCount}
+            count={effectiveRecurrenceCount}
             onCountChange={setRecurrenceCount}
             generatedDates={generatedDates}
             conflicts={recurrenceConflicts}
             isChecking={isCheckingConflicts}
+            countFixed={type === "PACKAGE"}
           />
         )}
 

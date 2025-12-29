@@ -307,7 +307,7 @@ export function useNovoAtendimento() {
           ...(isRecurring ? {
             isRecurring: true,
             recurrencePattern,
-            recurrenceCount,
+            recurrenceCount: effectiveRecurrenceCount,
             recurrenceGroupId: generateRecurrenceGroupId(),
           } : {}),
         }

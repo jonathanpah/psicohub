@@ -6,28 +6,31 @@ import { prisma } from "@/lib/prisma"
 import { logPatientEvent } from "@/lib/audit"
 import { checkRateLimit, rateLimitConfigs, getClientIP, rateLimitExceededResponse } from "@/lib/rate-limit"
 
+// Helper para campos de string opcionais que podem vir como null ou vazio do frontend
+const optionalString = z.string().optional().nullable().or(z.literal(""))
+
 const updatePatientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  email: z.string().email("Email inválido").optional().nullable().or(z.literal("")),
+  phone: optionalString,
   birthDate: z.string().optional().nullable(),
-  cpf: z.string().optional(),
-  address: z.string().optional(),
+  cpf: optionalString,
+  address: optionalString,
   // Dados do responsável 1
-  guardian: z.string().optional(),
-  guardianCpf: z.string().optional(),
-  guardianEmail: z.string().email("Email do responsável inválido").optional().or(z.literal("")),
-  guardianPhone: z.string().optional(),
-  guardianAddress: z.string().optional(),
-  guardianRelation: z.string().optional(),
+  guardian: optionalString,
+  guardianCpf: optionalString,
+  guardianEmail: z.string().email("Email do responsável inválido").optional().nullable().or(z.literal("")),
+  guardianPhone: optionalString,
+  guardianAddress: optionalString,
+  guardianRelation: optionalString,
   // Dados do responsável 2
-  guardian2: z.string().optional(),
-  guardian2Cpf: z.string().optional(),
-  guardian2Email: z.string().email("Email do responsável 2 inválido").optional().or(z.literal("")),
-  guardian2Phone: z.string().optional(),
-  guardian2Address: z.string().optional(),
-  guardian2Relation: z.string().optional(),
-  notes: z.string().optional(),
+  guardian2: optionalString,
+  guardian2Cpf: optionalString,
+  guardian2Email: z.string().email("Email do responsável 2 inválido").optional().nullable().or(z.literal("")),
+  guardian2Phone: optionalString,
+  guardian2Address: optionalString,
+  guardian2Relation: optionalString,
+  notes: optionalString,
   status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]).optional(),
 })
 

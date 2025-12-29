@@ -5,28 +5,31 @@ import { prisma } from "@/lib/prisma"
 import { logPatientEvent } from "@/lib/audit"
 import { logApiError } from "@/lib/logger"
 
+// Helper para campos de string opcionais que podem vir como null ou vazio do frontend
+const optionalStringCreate = z.string().optional().nullable().or(z.literal("")).transform(s => s?.trim() || null)
+
 const createPatientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").transform(s => s.trim()),
-  email: z.string().email("Email inválido").optional().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
-  phone: z.string().optional().transform(s => s?.trim() || null),
-  birthDate: z.string().optional(),
-  cpf: z.string().optional().transform(s => s?.trim() || null),
-  address: z.string().optional().transform(s => s?.trim() || null),
+  email: z.string().email("Email inválido").optional().nullable().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
+  phone: optionalStringCreate,
+  birthDate: z.string().optional().nullable(),
+  cpf: optionalStringCreate,
+  address: optionalStringCreate,
   // Dados do responsável 1
-  guardian: z.string().optional().transform(s => s?.trim() || null),
-  guardianCpf: z.string().optional().transform(s => s?.trim() || null),
-  guardianEmail: z.string().email("Email do responsável inválido").optional().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
-  guardianPhone: z.string().optional().transform(s => s?.trim() || null),
-  guardianAddress: z.string().optional().transform(s => s?.trim() || null),
-  guardianRelation: z.string().optional().transform(s => s?.trim() || null),
+  guardian: optionalStringCreate,
+  guardianCpf: optionalStringCreate,
+  guardianEmail: z.string().email("Email do responsável inválido").optional().nullable().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
+  guardianPhone: optionalStringCreate,
+  guardianAddress: optionalStringCreate,
+  guardianRelation: optionalStringCreate,
   // Dados do responsável 2
-  guardian2: z.string().optional().transform(s => s?.trim() || null),
-  guardian2Cpf: z.string().optional().transform(s => s?.trim() || null),
-  guardian2Email: z.string().email("Email do responsável 2 inválido").optional().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
-  guardian2Phone: z.string().optional().transform(s => s?.trim() || null),
-  guardian2Address: z.string().optional().transform(s => s?.trim() || null),
-  guardian2Relation: z.string().optional().transform(s => s?.trim() || null),
-  notes: z.string().optional().transform(s => s?.trim() || null),
+  guardian2: optionalStringCreate,
+  guardian2Cpf: optionalStringCreate,
+  guardian2Email: z.string().email("Email do responsável 2 inválido").optional().nullable().or(z.literal("")).transform(s => s?.trim().toLowerCase() || null),
+  guardian2Phone: optionalStringCreate,
+  guardian2Address: optionalStringCreate,
+  guardian2Relation: optionalStringCreate,
+  notes: optionalStringCreate,
 })
 
 /**

@@ -33,7 +33,6 @@ export function useNovoAtendimento() {
   const [sessionPrice, setSessionPrice] = useState("")
   const [totalSessions, setTotalSessions] = useState("1")
   const [packagePrice, setPackagePrice] = useState("")
-  const [packageName, setPackageName] = useState("")
   const [notes, setNotes] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -288,7 +287,6 @@ export function useNovoAtendimento() {
                 packagePrice: parseCurrency(packagePrice),
               }),
           sessions,
-          packageName: packageName || undefined,
           notes: notes || undefined,
           isPaid,
           ...(isPaid ? {
@@ -352,8 +350,6 @@ export function useNovoAtendimento() {
     setTotalSessions,
     packagePrice,
     setPackagePrice,
-    packageName,
-    setPackageName,
     notes,
     setNotes,
     isPaid,

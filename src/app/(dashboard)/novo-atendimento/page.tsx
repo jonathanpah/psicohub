@@ -38,8 +38,6 @@ function NovoAtendimentoContent() {
     setTotalSessions,
     packagePrice,
     setPackagePrice,
-    packageName,
-    setPackageName,
     notes,
     setNotes,
     isPaid,
@@ -212,13 +210,11 @@ function NovoAtendimentoContent() {
           sessionPrice={sessionPrice}
           totalSessions={totalSessions}
           packagePrice={packagePrice}
-          packageName={packageName}
           calculatedPricePerSession={calculatedPricePerSession}
           onTypeChange={setType}
           onSessionPriceChange={setSessionPrice}
           onTotalSessionsChange={setTotalSessions}
           onPackagePriceChange={setPackagePrice}
-          onPackageNameChange={setPackageName}
         />
 
         <SessionSlots

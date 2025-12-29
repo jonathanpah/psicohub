@@ -104,9 +104,10 @@ export function SessionSummaryCard({ patient, packages }: SessionSummaryCardProp
   const completedValue = calcTotal(completed)
   const scheduledValue = calcTotal(scheduled)
   const confirmedValue = calcTotal(confirmed)
+  const noShowValue = calcTotal(noShow) // Falta também é cobrada
 
   const totalSessions = sessions.length
-  const totalValue = completedValue + scheduledValue + confirmedValue
+  const totalValue = completedValue + scheduledValue + confirmedValue + noShowValue
 
   const statusRows = [
     { label: "Realizadas", count: completed.length, value: completedValue, color: "text-green-600", icon: "✅" },
@@ -114,7 +115,7 @@ export function SessionSummaryCard({ patient, packages }: SessionSummaryCardProp
     { label: "Agendadas", count: scheduled.length, value: scheduledValue, color: "text-purple-600", icon: "📅" },
     { label: "Não agendadas", count: unbilledCount, value: unbilledValue, color: "text-blue-500", icon: "📋" },
     { label: "Canceladas", count: cancelled.length, value: null, color: "text-red-600", icon: "❌" },
-    { label: "Faltas", count: noShow.length, value: null, color: "text-amber-600", icon: "⚠️" },
+    { label: "Faltas", count: noShow.length, value: noShowValue, color: "text-amber-600", icon: "⚠️" },
   ]
 
   return (

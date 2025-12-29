@@ -2,6 +2,13 @@ import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { logApiError } from "@/lib/logger"
+import {
+  checkRateLimit,
+  rateLimitConfigs,
+  getClientIP,
+  rateLimitExceededResponse,
+} from "@/lib/rate-limit"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -9,10 +16,18 @@ const registerSchema = z.object({
   phone: z.string().min(10, "Telefone inválido"),
   cpf: z.string().min(11, "CPF inválido"),
   crp: z.string().optional(),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(12, "Senha deve ter pelo menos 12 caracteres"),
 })
 
 export async function POST(request: Request) {
+  // Rate limiting - proteção contra brute force
+  const clientIP = getClientIP(request)
+  const rateLimitResult = await checkRateLimit(`register:${clientIP}`, rateLimitConfigs.register)
+
+  if (!rateLimitResult.success) {
+    return rateLimitExceededResponse(rateLimitResult)
+  }
+
   try {
     const body = await request.json()
     const { name, email, phone, cpf, crp, password } = registerSchema.parse(body)
@@ -21,14 +36,17 @@ export async function POST(request: Request) {
       where: { email },
     })
 
+    // Hash a senha independente do resultado para evitar timing attacks
+    const hashedPassword = await hash(password, 12)
+
     if (existingUser) {
+      // Retornar mesma mensagem de sucesso para evitar email enumeration
+      // O usuário não saberá se o email já existe ou se foi criado com sucesso
       return NextResponse.json(
-        { error: "Email já cadastrado" },
-        { status: 400 }
+        { message: "Se o email não estiver em uso, sua conta foi criada. Verifique seu email." },
+        { status: 201 }
       )
     }
-
-    const hashedPassword = await hash(password, 12)
 
     const user = await prisma.user.create({
       data: {
@@ -42,10 +60,10 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(
-      { message: "Usuário criado com sucesso", userId: user.id },
+      { message: "Se o email não estiver em uso, sua conta foi criada. Verifique seu email.", userId: user.id },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -53,7 +71,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.error("Erro ao registrar usuário:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 // GET - Listar pagamentos com filtros e resumo
@@ -17,17 +18,25 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
     const patientId = searchParams.get("patientId")
-    const month = searchParams.get("month")
-    const year = searchParams.get("year")
+    const monthParam = searchParams.get("month")
+    const yearParam = searchParams.get("year")
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
 
+    // Validar e parsear mês e ano
+    const month = monthParam ? parseInt(monthParam, 10) : null
+    const year = yearParam ? parseInt(yearParam, 10) : null
+
+    // Validar intervalos
+    const isValidMonth = month !== null && !isNaN(month) && month >= 1 && month <= 12
+    const isValidYear = year !== null && !isNaN(year) && year >= 2020 && year <= 2100
+
     // Construir filtro de data
     let dateFilter = {}
-    if (month && year) {
+    if (isValidMonth && isValidYear) {
       // Filtro por mês e ano específico
-      const startOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1)
-      const endOfMonth = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59)
+      const startOfMonth = new Date(year, month - 1, 1)
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59)
       dateFilter = {
         session: {
           dateTime: {
@@ -36,10 +45,10 @@ export async function GET(request: Request) {
           },
         },
       }
-    } else if (year && !month) {
+    } else if (isValidYear && !isValidMonth) {
       // Filtro só por ano (todos os meses do ano)
-      const startOfYear = new Date(parseInt(year), 0, 1)
-      const endOfYear = new Date(parseInt(year), 11, 31, 23, 59, 59)
+      const startOfYear = new Date(year, 0, 1)
+      const endOfYear = new Date(year, 11, 31, 23, 59, 59)
       dateFilter = {
         session: {
           dateTime: {
@@ -60,71 +69,74 @@ export async function GET(request: Request) {
     }
     // Se não tiver month, year, startDate, ou endDate, retorna todos os pagamentos
 
-    // Buscar pagamentos
-    const payments = await prisma.payment.findMany({
-      where: {
-        userId: session.user.id,
-        ...(status && { status: status as "PENDING" | "PAID" | "CANCELLED" }),
-        ...(patientId && { session: { patientId } }),
-        ...dateFilter,
-      },
-      include: {
-        session: {
-          include: {
-            patient: {
-              select: {
-                id: true,
-                name: true,
-                phone: true,
-                email: true,
+    // Executar todas as queries em paralelo para otimização
+    const baseWhere = {
+      userId: session.user.id,
+      ...dateFilter,
+    }
+
+    const [payments, summaryByStatus, sessionsWithDates] = await Promise.all([
+      // Query 1: Buscar pagamentos com filtros
+      prisma.payment.findMany({
+        where: {
+          ...baseWhere,
+          ...(status && { status: status as "PENDING" | "PAID" | "CANCELLED" }),
+          ...(patientId && { session: { patientId } }),
+        },
+        include: {
+          session: {
+            include: {
+              patient: {
+                select: {
+                  id: true,
+                  name: true,
+                  phone: true,
+                  email: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        session: {
-          dateTime: "desc",
+        orderBy: {
+          session: {
+            dateTime: "desc",
+          },
         },
-      },
-    })
+      }),
 
-    // Calcular resumo
-    const allPaymentsForSummary = await prisma.payment.findMany({
-      where: {
-        userId: session.user.id,
-        ...dateFilter,
-      },
-      select: {
-        amount: true,
-        status: true,
-      },
-    })
+      // Query 2: Agregação por status para resumo (mais eficiente que buscar todos)
+      prisma.payment.groupBy({
+        by: ["status"],
+        where: baseWhere,
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+
+      // Query 3: Anos disponíveis (usando distinct)
+      prisma.session.findMany({
+        where: { userId: session.user.id },
+        select: { dateTime: true },
+        distinct: ["dateTime"],
+      }),
+    ])
+
+    // Processar resumo a partir da agregação
+    const summaryMap = summaryByStatus.reduce((acc, item) => {
+      acc[item.status] = {
+        total: Number(item._sum.amount || 0),
+        count: item._count.id,
+      }
+      return acc
+    }, {} as Record<string, { total: number; count: number }>)
 
     const summary = {
-      totalBilled: allPaymentsForSummary
-        .filter((p) => p.status !== "CANCELLED")
-        .reduce((sum, p) => sum + Number(p.amount), 0),
-      totalPaid: allPaymentsForSummary
-        .filter((p) => p.status === "PAID")
-        .reduce((sum, p) => sum + Number(p.amount), 0),
-      totalPending: allPaymentsForSummary
-        .filter((p) => p.status === "PENDING")
-        .reduce((sum, p) => sum + Number(p.amount), 0),
-      countPaid: allPaymentsForSummary.filter((p) => p.status === "PAID").length,
-      countPending: allPaymentsForSummary.filter((p) => p.status === "PENDING").length,
-      countCancelled: allPaymentsForSummary.filter((p) => p.status === "CANCELLED").length,
+      totalBilled: (summaryMap.PAID?.total || 0) + (summaryMap.PENDING?.total || 0),
+      totalPaid: summaryMap.PAID?.total || 0,
+      totalPending: summaryMap.PENDING?.total || 0,
+      countPaid: summaryMap.PAID?.count || 0,
+      countPending: summaryMap.PENDING?.count || 0,
+      countCancelled: summaryMap.CANCELLED?.count || 0,
     }
-
-    // Buscar anos disponíveis baseado nas sessões existentes
-    const sessionsWithDates = await prisma.session.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      select: {
-        dateTime: true,
-      },
-    })
 
     const currentYear = new Date().getFullYear()
     const yearsFromData = new Set(
@@ -138,8 +150,8 @@ export async function GET(request: Request) {
     const availableYears = Array.from(yearsFromData).sort((a, b) => b - a)
 
     return NextResponse.json({ payments, summary, availableYears })
-  } catch (error) {
-    console.error("Erro ao listar pagamentos:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

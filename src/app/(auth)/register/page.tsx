@@ -19,18 +19,85 @@ export default function RegisterPage() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const name = formData.get("name") as string
-    const email = formData.get("email") as string
-    const phone = formData.get("phone") as string
-    const cpf = formData.get("cpf") as string
-    const crp = formData.get("crp") as string
-    const password = formData.get("password") as string
+
+    // Validação segura dos campos
+    const name = formData.get("name")
+    const email = formData.get("email")
+    const phone = formData.get("phone")
+    const cpf = formData.get("cpf")
+    const crp = formData.get("crp")
+    const password = formData.get("password")
+
+    // Verificar se todos os campos obrigatórios são strings válidas
+    if (typeof name !== "string" || !name.trim()) {
+      setError("Nome é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    if (typeof email !== "string" || !email.trim()) {
+      setError("Email é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError("Email inválido")
+      setLoading(false)
+      return
+    }
+
+    if (typeof phone !== "string" || !phone.trim()) {
+      setError("Telefone é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    // Validar telefone (mínimo 10 dígitos)
+    const phoneDigits = phone.replace(/\D/g, "")
+    if (phoneDigits.length < 10) {
+      setError("Telefone inválido")
+      setLoading(false)
+      return
+    }
+
+    if (typeof cpf !== "string" || !cpf.trim()) {
+      setError("CPF é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    // Validar CPF (11 dígitos)
+    const cpfDigits = cpf.replace(/\D/g, "")
+    if (cpfDigits.length !== 11) {
+      setError("CPF inválido")
+      setLoading(false)
+      return
+    }
+
+    if (typeof password !== "string" || password.length < 12) {
+      setError("Senha deve ter pelo menos 12 caracteres")
+      setLoading(false)
+      return
+    }
+
+    // CRP é opcional, mas se preenchido, validar
+    const crpValue = typeof crp === "string" ? crp.trim() : ""
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, cpf, crp, password }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          cpf: cpf.trim(),
+          crp: crpValue || undefined,
+          password,
+        }),
       })
 
       const data = await response.json()

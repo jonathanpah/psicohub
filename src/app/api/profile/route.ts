@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 const updateProfileSchema = z.object({
@@ -70,8 +71,8 @@ export async function GET() {
     }
 
     return NextResponse.json(user)
-  } catch (error) {
-    console.error("Erro ao buscar perfil:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function PUT(request: Request) {
     })
 
     return NextResponse.json(user)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -149,7 +150,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    console.error("Erro ao atualizar perfil:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

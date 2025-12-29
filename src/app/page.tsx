@@ -193,13 +193,13 @@ export default function LandingPage() {
             reservados.
           </div>
           <div className="flex gap-6 text-sm text-gray-500">
-            <a href="#" className="hover:text-gray-900">
+            <a href="#" className="hover:text-gray-900" aria-label="Termos de Uso">
               Termos de Uso
             </a>
-            <a href="#" className="hover:text-gray-900">
+            <a href="#" className="hover:text-gray-900" aria-label="Política de Privacidade">
               Privacidade
             </a>
-            <a href="#" className="hover:text-gray-900">
+            <a href="#" className="hover:text-gray-900" aria-label="Entre em contato">
               Contato
             </a>
           </div>

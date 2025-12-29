@@ -41,6 +41,7 @@ interface DashboardStats {
   todaySessions: number
   monthlyRevenue: number
   pendingPayments: number
+  pendingUnscheduled: number  // Sessões não agendadas de pacotes
   nextSession: Session | null
   todaySessionsList: Session[]
   pendingPaymentsList: PendingPayment[]
@@ -87,6 +88,7 @@ export default function DashboardPage() {
     todaySessions: 0,
     monthlyRevenue: 0,
     pendingPayments: 0,
+    pendingUnscheduled: 0,
     nextSession: null,
     todaySessionsList: [],
     pendingPaymentsList: [],
@@ -95,62 +97,73 @@ export default function DashboardPage() {
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      // Fetch active patients count
-      const patientsRes = await fetch("/api/patients?status=ACTIVE")
-      const patients = patientsRes.ok ? await patientsRes.json() : []
-
-      // Fetch today's sessions
+      // Preparar datas
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
+      const now = new Date()
+      const currentMonth = now.getMonth() + 1
+      const currentYear = now.getFullYear()
 
-      const sessionsRes = await fetch(
-        `/api/sessions?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`
+      // Executar todas as chamadas em paralelo
+      const [
+        patientsRes,
+        todaySessionsRes,
+        paymentsRes,
+        pendingPaymentsRes,
+        upcomingSessionsRes,
+        packagesRes,
+      ] = await Promise.all([
+        fetch("/api/patients?status=ACTIVE"),
+        fetch(`/api/sessions?startDate=${today.toISOString()}&endDate=${tomorrow.toISOString()}`),
+        fetch(`/api/payments?month=${currentMonth}&year=${currentYear}`),
+        fetch("/api/payments?status=PENDING"),
+        fetch(`/api/sessions?startDate=${now.toISOString()}`),
+        fetch("/api/packages?status=ACTIVE"),
+      ])
+
+      // Processar respostas em paralelo
+      const [patients, todaySessions, paymentsData, pendingPaymentsData, upcomingSessions, packagesData] =
+        await Promise.all([
+          patientsRes.ok ? patientsRes.json() : [],
+          todaySessionsRes.ok ? todaySessionsRes.json() : [],
+          paymentsRes.ok ? paymentsRes.json() : { payments: [], summary: {} },
+          pendingPaymentsRes.ok ? pendingPaymentsRes.json() : { payments: [] },
+          upcomingSessionsRes.ok ? upcomingSessionsRes.json() : [],
+          packagesRes.ok ? packagesRes.json() : [],
+        ])
+
+      // Calcular valor de sessões não agendadas de pacotes ativos
+      interface PackageData {
+        stats: { remainingSlots: number }
+        pricePerSession: string | number
+      }
+      const pendingUnscheduled = (packagesData as PackageData[]).reduce(
+        (sum: number, pkg: PackageData) => sum + pkg.stats.remainingSlots * Number(pkg.pricePerSession),
+        0
       )
-      const todaySessions: Session[] = sessionsRes.ok ? await sessionsRes.json() : []
-
-      // Fetch payments for current month
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      const paymentsRes = await fetch(
-        `/api/payments?month=${currentMonth}&year=${currentYear}`
-      )
-      const paymentsData = paymentsRes.ok ? await paymentsRes.json() : { payments: [], summary: {} }
-
-      // Fetch pending payments (all time, up to 10)
-      const pendingPaymentsRes = await fetch("/api/payments?status=PENDING")
-      const pendingPaymentsData = pendingPaymentsRes.ok
-        ? await pendingPaymentsRes.json()
-        : { payments: [] }
 
       // Find next session (first scheduled/confirmed session in the future)
-      const now = new Date()
-      const upcomingSessionsRes = await fetch(
-        `/api/sessions?startDate=${now.toISOString()}`
-      )
-      const upcomingSessions: Session[] = upcomingSessionsRes.ok
-        ? await upcomingSessionsRes.json()
-        : []
-      const nextSession = upcomingSessions
+      const nextSession = (upcomingSessions as Session[])
         .filter((s) => s.status === "SCHEDULED" || s.status === "CONFIRMED")
         .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0] || null
 
       setStats({
         totalPatients: patients.length,
-        todaySessions: todaySessions.filter(
+        todaySessions: (todaySessions as Session[]).filter(
           (s) => s.status !== "CANCELLED"
         ).length,
         monthlyRevenue: paymentsData.summary?.totalPaid || 0,
         pendingPayments: paymentsData.summary?.totalPending || 0,
+        pendingUnscheduled,
         nextSession,
-        todaySessionsList: todaySessions
+        todaySessionsList: (todaySessions as Session[])
           .filter((s) => s.status !== "CANCELLED")
           .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()),
         pendingPaymentsList: (pendingPaymentsData.payments || []).slice(0, 5),
       })
-    } catch (error) {
-      console.error("Erro ao carregar dados do dashboard:", error)
+    } catch (error: unknown) {
     } finally {
       setLoading(false)
     }
@@ -252,15 +265,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Pending Payments Alert */}
-      {stats.pendingPayments > 0 && (
+      {(stats.pendingPayments > 0 || stats.pendingUnscheduled > 0) && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-800">
-                  Você tem {formatCurrency(stats.pendingPayments)} em pagamentos pendentes
+                  Você tem {formatCurrency(stats.pendingPayments + stats.pendingUnscheduled)} em pendências
                 </p>
+                {stats.pendingUnscheduled > 0 && (
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    (inclui {formatCurrency(stats.pendingUnscheduled)} de sessões não agendadas)
+                  </p>
+                )}
               </div>
               <Link
                 href="/financeiro"

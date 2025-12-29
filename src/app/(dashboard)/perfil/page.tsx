@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -53,8 +54,7 @@ export default function PerfilPage() {
         const data = await response.json()
         setProfile(data)
       }
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error)
+    } catch (error: unknown) {
     } finally {
       setLoading(false)
     }

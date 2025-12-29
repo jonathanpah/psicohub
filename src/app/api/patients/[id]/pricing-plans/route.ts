@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 const createPricingPlanSchema = z.object({
@@ -50,8 +51,8 @@ export async function GET(
     })
 
     return NextResponse.json(pricingPlans)
-  } catch (error) {
-    console.error("Erro ao listar planos de pagamento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -118,7 +119,7 @@ export async function POST(
     })
 
     return NextResponse.json(pricingPlan, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -126,7 +127,7 @@ export async function POST(
       )
     }
 
-    console.error("Erro ao criar plano de pagamento:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

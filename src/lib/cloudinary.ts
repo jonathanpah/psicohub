@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary"
+import { logger } from "./logger"
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -55,7 +56,7 @@ export function getSignedUrl(
   try {
     const parsed = parseCloudinaryUrl(fileUrl)
     if (!parsed) {
-      console.error("Não foi possível parsear URL do Cloudinary:", fileUrl)
+      logger.warn("Não foi possível parsear URL do Cloudinary", { fileUrl })
       return fileUrl
     }
 
@@ -72,8 +73,8 @@ export function getSignedUrl(
     })
 
     return signedUrl
-  } catch (error) {
-    console.error("Erro ao gerar URL assinada:", error)
+  } catch (error: unknown) {
+    logger.error("Erro ao gerar URL assinada", error)
     return fileUrl
   }
 }
@@ -91,14 +92,14 @@ export async function fetchPrivateFile(fileUrl: string): Promise<{
     // Gerar URL assinada com expiração de 5 minutos
     const signedUrl = getSignedUrl(fileUrl, 5)
 
-    console.log("Buscando arquivo privado com URL assinada")
+    logger.debug("Buscando arquivo privado com URL assinada")
 
     const response = await fetch(signedUrl, {
       headers: { Accept: "*/*" },
     })
 
     if (!response.ok) {
-      console.error("Erro ao buscar arquivo:", response.status, response.statusText)
+      logger.error("Erro ao buscar arquivo", new Error(`HTTP ${response.status}: ${response.statusText}`))
       return {
         buffer: new ArrayBuffer(0),
         success: false,
@@ -107,14 +108,14 @@ export async function fetchPrivateFile(fileUrl: string): Promise<{
     }
 
     const buffer = await response.arrayBuffer()
-    console.log("Arquivo recebido, tamanho:", buffer.byteLength)
+    logger.debug("Arquivo recebido", { size: buffer.byteLength })
 
     return {
       buffer,
       success: true,
     }
-  } catch (error) {
-    console.error("Erro ao buscar arquivo privado:", error)
+  } catch (error: unknown) {
+    logger.error("Erro ao buscar arquivo privado", error)
     return {
       buffer: new ArrayBuffer(0),
       success: false,

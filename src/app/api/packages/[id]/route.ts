@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 // GET - Buscar detalhes do pacote
@@ -94,8 +95,8 @@ export async function GET(
       ...sessionPackage,
       stats,
     })
-  } catch (error) {
-    console.error("Erro ao buscar pacote:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -190,8 +191,8 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedPackage)
-  } catch (error) {
-    console.error("Erro ao atualizar pacote:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -247,8 +248,8 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Erro ao excluir pacote:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

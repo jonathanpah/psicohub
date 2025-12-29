@@ -55,6 +55,13 @@ model Patient {
   guardianCpf      String?
   guardianEmail    String?
   guardianRelation String?
+  // Segundo responsável
+  guardian2         String?
+  guardian2Phone    String?
+  guardian2Email    String?
+  guardian2Cpf      String?
+  guardian2Address  String?
+  guardian2Relation String?
   documents        Document[]
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   pricingPlans     PricingPlan[]
@@ -226,4 +233,61 @@ enum DocumentCategory {
   PSYCHOLOGICAL_EVALUATION
   CLINICAL_EVOLUTION
   OTHER
+}
+
+// Modelo de Auditoria para conformidade LGPD
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String      // Quem realizou a ação
+  action      AuditAction // Tipo de ação
+  entityType  String      // Tipo de entidade (Patient, Session, Payment, etc)
+  entityId    String?     // ID da entidade afetada
+  details     String?     // Detalhes adicionais (JSON string)
+  ipAddress   String?     // IP do usuário
+  userAgent   String?     // User agent do navegador
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+}
+
+enum AuditAction {
+  // Autenticação
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+
+  // Pacientes
+  PATIENT_CREATE
+  PATIENT_UPDATE
+  PATIENT_DELETE
+  PATIENT_VIEW
+
+  // Sessões
+  SESSION_CREATE
+  SESSION_UPDATE
+  SESSION_DELETE
+  SESSION_VIEW
+
+  // Pagamentos
+  PAYMENT_CREATE
+  PAYMENT_UPDATE
+  PAYMENT_DELETE
+
+  // Documentos
+  DOCUMENT_UPLOAD
+  DOCUMENT_VIEW
+  DOCUMENT_DOWNLOAD
+  DOCUMENT_DELETE
+
+  // Dados sensíveis
+  SENSITIVE_DATA_ACCESS
+  SENSITIVE_DATA_EXPORT
+
+  // Configurações
+  SETTINGS_UPDATE
+  PROFILE_UPDATE
 }

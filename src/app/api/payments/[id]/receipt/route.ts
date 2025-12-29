@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 // Função para converter número por extenso
@@ -211,8 +212,8 @@ export async function GET(
     }
 
     return NextResponse.json(receiptData)
-  } catch (error) {
-    console.error("Erro ao gerar dados do recibo:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

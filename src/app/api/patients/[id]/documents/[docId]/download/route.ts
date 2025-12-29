@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { fetchPrivateFile } from "@/lib/cloudinary"
+import { logDocumentEvent } from "@/lib/audit"
 
 // GET - Download documento via proxy seguro
 // IMPORTANTE: Verifica autenticação e ownership antes de servir o arquivo
@@ -55,14 +57,20 @@ export async function GET(
     const result = await fetchPrivateFile(document.fileUrl)
 
     if (!result.success) {
-      console.error("Erro ao buscar arquivo privado:", result.error)
+      logApiError("API", "GET", result.error)
       return NextResponse.json(
         { error: "Erro ao buscar arquivo" },
         { status: 500 }
       )
     }
 
-    // 5. Retornar o arquivo com headers corretos para download
+    // 5. Registrar auditoria de download (conformidade LGPD)
+    await logDocumentEvent("DOCUMENT_DOWNLOAD", session.user.id, docId, {
+      documentName: document.name,
+      patientId,
+    }, request)
+
+    // 6. Retornar o arquivo com headers corretos para download
     return new NextResponse(result.buffer, {
       headers: {
         "Content-Type": document.fileType,
@@ -72,8 +80,8 @@ export async function GET(
         "X-Content-Type-Options": "nosniff",
       },
     })
-  } catch (error) {
-    console.error("Erro ao baixar documento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

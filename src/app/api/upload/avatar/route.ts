@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { cloudinary } from "@/lib/cloudinary"
 
@@ -64,8 +65,8 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ url: result.secure_url })
-  } catch (error) {
-    console.error("Erro ao fazer upload:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro ao fazer upload da imagem" },
       { status: 500 }

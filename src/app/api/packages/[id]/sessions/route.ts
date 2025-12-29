@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+import { sanitizeText } from "@/lib/sanitize"
 
 // Schema para adicionar sessões ao pacote
 const addSessionsSchema = z.object({
@@ -132,7 +134,7 @@ export async function POST(
             patientId: sessionPackage.patientId,
             dateTime: new Date(sessionData.dateTime),
             duration: sessionData.duration || 50,
-            observations: sessionData.observations || null,
+            observations: sessionData.observations ? sanitizeText(sessionData.observations) : null,
             packageId: id,
             packageOrder: order,
           },
@@ -198,7 +200,7 @@ export async function POST(
       message: `${createdSessions.length} sessão(ões) adicionada(s)`,
       sessions: createdSessions,
     }, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -206,7 +208,7 @@ export async function POST(
       )
     }
 
-    console.error("Erro ao adicionar sessões:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

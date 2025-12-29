@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 
 const updatePricingPlanSchema = z.object({
@@ -77,7 +78,7 @@ export async function PUT(
     })
 
     return NextResponse.json(pricingPlan)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -85,7 +86,7 @@ export async function PUT(
       )
     }
 
-    console.error("Erro ao atualizar plano de pagamento:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -180,8 +181,8 @@ export async function DELETE(
     })
 
     return NextResponse.json({ message: "Plano e dados relacionados excluídos com sucesso" })
-  } catch (error) {
-    console.error("Erro ao excluir plano de pagamento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

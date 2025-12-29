@@ -32,6 +32,12 @@ interface Patient {
   guardianPhone: string | null
   guardianAddress: string | null
   guardianRelation: string | null
+  guardian2: string | null
+  guardian2Cpf: string | null
+  guardian2Email: string | null
+  guardian2Phone: string | null
+  guardian2Address: string | null
+  guardian2Relation: string | null
   notes: string | null
   status: "ACTIVE" | "INACTIVE" | "ARCHIVED"
 }
@@ -44,6 +50,7 @@ export default function EditarPacientePage() {
   const [error, setError] = useState("")
   const [patient, setPatient] = useState<Patient | null>(null)
   const [guardianRelation, setGuardianRelation] = useState("")
+  const [guardian2Relation, setGuardian2Relation] = useState("")
 
   useEffect(() => {
     fetchPatient()
@@ -56,11 +63,11 @@ export default function EditarPacientePage() {
         const data = await response.json()
         setPatient(data)
         setGuardianRelation(data.guardianRelation || "")
+        setGuardian2Relation(data.guardian2Relation || "")
       } else if (response.status === 404) {
         router.push("/pacientes")
       }
-    } catch (error) {
-      console.error("Erro ao carregar paciente:", error)
+    } catch (error: unknown) {
       setError("Erro ao carregar dados do paciente")
     } finally {
       setLoading(false)
@@ -85,13 +92,20 @@ export default function EditarPacientePage() {
           cpf: formData.get("cpf"),
           birthDate: formData.get("birthDate") || null,
           address: formData.get("address"),
-          // Dados do responsável
+          // Dados do responsável 1
           guardian: formData.get("guardian"),
           guardianCpf: formData.get("guardianCpf"),
           guardianEmail: formData.get("guardianEmail"),
           guardianPhone: formData.get("guardianPhone"),
           guardianAddress: formData.get("guardianAddress"),
           guardianRelation: guardianRelation || null,
+          // Dados do responsável 2
+          guardian2: formData.get("guardian2"),
+          guardian2Cpf: formData.get("guardian2Cpf"),
+          guardian2Email: formData.get("guardian2Email"),
+          guardian2Phone: formData.get("guardian2Phone"),
+          guardian2Address: formData.get("guardian2Address"),
+          guardian2Relation: guardian2Relation || null,
           notes: formData.get("notes"),
           status: patient?.status,
         }),
@@ -133,7 +147,7 @@ export default function EditarPacientePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center gap-4">
         <Link href={`/pacientes/${patient.id}`}>
           <Button variant="ghost" size="icon">
@@ -141,8 +155,8 @@ export default function EditarPacientePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Editar Paciente</h1>
-          <p className="text-gray-600">{patient.name}</p>
+          <h1 className="text-xl font-medium text-gray-900 tracking-tight">Editar Paciente</h1>
+          <p className="text-sm text-gray-500 mt-1">{patient.name}</p>
         </div>
       </div>
 
@@ -220,7 +234,7 @@ export default function EditarPacientePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Responsável (para menores de idade)</CardTitle>
+              <CardTitle>Responsável 1 (para menores de idade)</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -289,6 +303,82 @@ export default function EditarPacientePage() {
                   name="guardianAddress"
                   placeholder="Rua, número, bairro, cidade - UF"
                   defaultValue={patient.guardianAddress || ""}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Responsável 2 (opcional)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="guardian2">Nome do Responsável</Label>
+                <Input
+                  id="guardian2"
+                  name="guardian2"
+                  placeholder="Nome completo do responsável"
+                  defaultValue={patient.guardian2 || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Relation">Relação com o Menor</Label>
+                <Select
+                  value={guardian2Relation}
+                  onValueChange={setGuardian2Relation}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a relação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pai">Pai</SelectItem>
+                    <SelectItem value="mae">Mãe</SelectItem>
+                    <SelectItem value="avo">Avô/Avó</SelectItem>
+                    <SelectItem value="tio">Tio/Tia</SelectItem>
+                    <SelectItem value="padrasto">Padrasto/Madrasta</SelectItem>
+                    <SelectItem value="tutor">Tutor Legal</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Cpf">CPF do Responsável</Label>
+                <MaskedInput
+                  id="guardian2Cpf"
+                  name="guardian2Cpf"
+                  mask="cpf"
+                  placeholder="000.000.000-00"
+                  defaultValue={patient.guardian2Cpf || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Phone">Telefone do Responsável</Label>
+                <MaskedInput
+                  id="guardian2Phone"
+                  name="guardian2Phone"
+                  mask="phone"
+                  placeholder="(00) 00000-0000"
+                  defaultValue={patient.guardian2Phone || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Email">Email do Responsável</Label>
+                <Input
+                  id="guardian2Email"
+                  name="guardian2Email"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  defaultValue={patient.guardian2Email || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Address">Endereço do Responsável</Label>
+                <Input
+                  id="guardian2Address"
+                  name="guardian2Address"
+                  placeholder="Rua, número, bairro, cidade - UF"
+                  defaultValue={patient.guardian2Address || ""}
                 />
               </div>
             </CardContent>

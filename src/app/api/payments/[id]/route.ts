@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+import { logPaymentEvent } from "@/lib/audit"
+import { checkRateLimit, rateLimitConfigs, getClientIP, rateLimitExceededResponse } from "@/lib/rate-limit"
+import { sanitizeText } from "@/lib/sanitize"
 
 const updatePaymentSchema = z.object({
   status: z.enum(["PENDING", "PAID", "CANCELLED"]).optional(),
@@ -9,6 +13,8 @@ const updatePaymentSchema = z.object({
   amount: z.number().optional(),
   notes: z.string().optional().nullable(),
   receiptUrl: z.string().optional().nullable(),
+  receiptFileName: z.string().optional().nullable(),
+  receiptFileType: z.string().optional().nullable(),
 })
 
 // GET - Buscar pagamento específico
@@ -70,8 +76,8 @@ export async function GET(
     }
 
     return NextResponse.json(payment)
-  } catch (error) {
-    console.error("Erro ao buscar pagamento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -134,11 +140,19 @@ export async function PUT(
     }
 
     if (data.notes !== undefined) {
-      updateData.notes = data.notes
+      updateData.notes = data.notes ? sanitizeText(data.notes) : null
     }
 
     if (data.receiptUrl !== undefined) {
       updateData.receiptUrl = data.receiptUrl
+    }
+
+    if (data.receiptFileName !== undefined) {
+      updateData.receiptFileName = data.receiptFileName
+    }
+
+    if (data.receiptFileType !== undefined) {
+      updateData.receiptFileType = data.receiptFileType
     }
 
     const updatedPayment = await prisma.payment.update({
@@ -160,8 +174,14 @@ export async function PUT(
       },
     })
 
+    // Registrar auditoria de atualização (sem dados pessoais)
+    await logPaymentEvent("PAYMENT_UPDATE", session.user.id, updatedPayment.id, {
+      amount: Number(updatedPayment.amount),
+      status: updatedPayment.status,
+    }, request)
+
     return NextResponse.json(updatedPayment)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -169,7 +189,7 @@ export async function PUT(
       )
     }
 
-    console.error("Erro ao atualizar pagamento:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -182,6 +202,13 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting para proteção contra exclusão em massa
+  const clientIP = getClientIP(request)
+  const rateLimitResult = await checkRateLimit(`delete:${clientIP}`, rateLimitConfigs.delete)
+  if (!rateLimitResult.success) {
+    return rateLimitExceededResponse(rateLimitResult)
+  }
+
   try {
     const session = await auth()
     const { id } = await params
@@ -208,13 +235,20 @@ export async function DELETE(
       )
     }
 
+    // Registrar auditoria antes de excluir
+    await logPaymentEvent("PAYMENT_DELETE", session.user.id, id, {
+      sessionId: existingPayment.sessionId,
+      amount: Number(existingPayment.amount),
+      status: existingPayment.status,
+    }, request)
+
     await prisma.payment.delete({
       where: { id },
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Erro ao excluir pagamento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

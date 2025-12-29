@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { cloudinary } from "@/lib/cloudinary"
 
@@ -49,8 +50,8 @@ export async function GET(
     }
 
     return NextResponse.json(document)
-  } catch (error) {
-    console.error("Erro ao buscar documento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -116,8 +117,8 @@ export async function PUT(
     })
 
     return NextResponse.json(document)
-  } catch (error) {
-    console.error("Erro ao atualizar documento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -179,7 +180,7 @@ export async function DELETE(
 
       await cloudinary.uploader.destroy(publicId, { resource_type: "raw" })
     } catch (cloudinaryError) {
-      console.error("Erro ao excluir do Cloudinary:", cloudinaryError)
+      logApiError("API", "DELETE", cloudinaryError)
       // Continua mesmo se falhar no Cloudinary
     }
 
@@ -189,8 +190,8 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Erro ao excluir documento:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

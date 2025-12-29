@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { cloudinary } from "@/lib/cloudinary"
 
 const ALLOWED_TYPES = [
@@ -74,8 +75,8 @@ export async function POST(request: Request) {
       publicId: result.public_id,
       format: result.format,
     })
-  } catch (error) {
-    console.error("Erro no upload:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro ao fazer upload do arquivo" },
       { status: 500 }

@@ -41,13 +41,20 @@ export default function NovoPacientePage() {
           cpf: formData.get("cpf"),
           birthDate: formData.get("birthDate"),
           address: formData.get("address"),
-          // Dados do responsável
+          // Dados do responsável 1
           guardian: formData.get("guardian"),
           guardianCpf: formData.get("guardianCpf"),
           guardianEmail: formData.get("guardianEmail"),
           guardianPhone: formData.get("guardianPhone"),
           guardianAddress: formData.get("guardianAddress"),
           guardianRelation: formData.get("guardianRelation"),
+          // Dados do responsável 2
+          guardian2: formData.get("guardian2"),
+          guardian2Cpf: formData.get("guardian2Cpf"),
+          guardian2Email: formData.get("guardian2Email"),
+          guardian2Phone: formData.get("guardian2Phone"),
+          guardian2Address: formData.get("guardian2Address"),
+          guardian2Relation: formData.get("guardian2Relation"),
           notes: formData.get("notes"),
         }),
       })
@@ -68,7 +75,7 @@ export default function NovoPacientePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center gap-4">
         <Link href="/pacientes">
           <Button variant="ghost" size="icon">
@@ -76,8 +83,8 @@ export default function NovoPacientePage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Novo Paciente</h1>
-          <p className="text-gray-600">Cadastre um novo paciente</p>
+          <h1 className="text-xl font-medium text-gray-900 tracking-tight">Novo Paciente</h1>
+          <p className="text-sm text-gray-500 mt-1">Cadastre um novo paciente</p>
         </div>
       </div>
 
@@ -145,7 +152,7 @@ export default function NovoPacientePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Responsável (para menores de idade)</CardTitle>
+              <CardTitle>Responsável 1 (para menores de idade)</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -205,6 +212,74 @@ export default function NovoPacientePage() {
                 <Input
                   id="guardianAddress"
                   name="guardianAddress"
+                  placeholder="Rua, número, bairro, cidade - UF"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Responsável 2 (opcional)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="guardian2">Nome do Responsável</Label>
+                <Input
+                  id="guardian2"
+                  name="guardian2"
+                  placeholder="Nome completo do responsável"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Relation">Relação com o Menor</Label>
+                <Select name="guardian2Relation">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a relação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pai">Pai</SelectItem>
+                    <SelectItem value="mae">Mãe</SelectItem>
+                    <SelectItem value="avo">Avô/Avó</SelectItem>
+                    <SelectItem value="tio">Tio/Tia</SelectItem>
+                    <SelectItem value="padrasto">Padrasto/Madrasta</SelectItem>
+                    <SelectItem value="tutor">Tutor Legal</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Cpf">CPF do Responsável</Label>
+                <MaskedInput
+                  id="guardian2Cpf"
+                  name="guardian2Cpf"
+                  mask="cpf"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Phone">Telefone do Responsável</Label>
+                <MaskedInput
+                  id="guardian2Phone"
+                  name="guardian2Phone"
+                  mask="phone"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Email">Email do Responsável</Label>
+                <Input
+                  id="guardian2Email"
+                  name="guardian2Email"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="guardian2Address">Endereço do Responsável</Label>
+                <Input
+                  id="guardian2Address"
+                  name="guardian2Address"
                   placeholder="Rua, número, bairro, cidade - UF"
                 />
               </div>

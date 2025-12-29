@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -46,8 +47,8 @@ export default function PacientesPage() {
         const data = await response.json()
         setPatients(data)
       }
-    } catch (error) {
-      console.error("Erro ao carregar pacientes:", error)
+    } catch (error: unknown) {
+      toast.error("Ocorreu um erro")
     } finally {
       setLoading(false)
     }
@@ -71,11 +72,11 @@ export default function PacientesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pacientes</h1>
-          <p className="text-gray-600">Gerencie seus pacientes</p>
+          <h1 className="text-xl font-medium text-gray-900 tracking-tight">Pacientes</h1>
+          <p className="text-sm text-gray-500 mt-1">Gerencie seus pacientes</p>
         </div>
         <Link href="/pacientes/novo">
           <Button>
@@ -87,14 +88,15 @@ export default function PacientesPage() {
 
       <Card>
         <CardHeader>
-          <form onSubmit={handleSearch} className="flex items-center gap-4">
+          <form onSubmit={handleSearch} className="flex items-center gap-4" role="search">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
               <Input
                 placeholder="Buscar por nome, email ou telefone..."
                 className="pl-10"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Buscar pacientes"
               />
             </div>
             <Select value={status} onValueChange={setStatus}>
@@ -150,13 +152,15 @@ export default function PacientesPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         {patient.phone && (
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-3 w-3" aria-hidden="true" />
+                            <span className="sr-only">Telefone:</span>
                             {patient.phone}
                           </span>
                         )}
                         {patient.email && (
                           <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
+                            <Mail className="h-3 w-3" aria-hidden="true" />
+                            <span className="sr-only">Email:</span>
                             {patient.email}
                           </span>
                         )}

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { generateRecurrenceDates, generateRecurrenceGroupId } from "@/lib/recurrence"
+import { logSessionEvent } from "@/lib/audit"
+import { sanitizeText } from "@/lib/sanitize"
 
 const createSessionSchema = z.object({
   patientId: z.string().min(1, "Paciente é obrigatório"),
@@ -62,7 +65,20 @@ async function checkTimeConflict(
   )
 }
 
-// GET - Listar sessões
+/**
+ * GET /api/sessions
+ * Lista sessões do usuário autenticado
+ *
+ * @query patientId - Filtrar por paciente
+ * @query startDate - Data inicial ISO
+ * @query endDate - Data final ISO
+ * @query status - SCHEDULED | CONFIRMED | COMPLETED | CANCELLED | NO_SHOW
+ * @query page - Página (0-indexed, requer limit)
+ * @query limit - Itens por página
+ *
+ * @returns Session[] - Sem paginação
+ * @returns { data: Session[], pagination } - Com paginação
+ */
 export async function GET(request: Request) {
   try {
     const session = await auth()
@@ -79,50 +95,85 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
     const status = searchParams.get("status")
+    const pageParam = parseInt(searchParams.get("page") || "0", 10)
+    const limitParam = parseInt(searchParams.get("limit") || "0", 10)
 
-    const sessions = await prisma.session.findMany({
-      where: {
-        userId: session.user.id,
-        ...(patientId && { patientId }),
-        ...(status && { status: status as "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" }),
-        ...(startDate && endDate && {
-          dateTime: {
-            gte: new Date(startDate),
-            lte: new Date(endDate),
-          },
+    // Validar paginação (evita NaN e valores negativos)
+    const page = Math.max(0, isNaN(pageParam) ? 0 : pageParam)
+    const limit = Math.min(100, Math.max(0, isNaN(limitParam) ? 0 : limitParam))
+
+    const whereClause = {
+      userId: session.user.id,
+      ...(patientId && { patientId }),
+      ...(status && { status: status as "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" }),
+      ...(startDate && endDate && {
+        dateTime: {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        },
+      }),
+    }
+
+    const includeClause = {
+      patient: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+        },
+      },
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          method: true,
+        },
+      },
+      package: {
+        select: {
+          id: true,
+          name: true,
+          totalSessions: true,
+        },
+      },
+    }
+
+    // Se paginação solicitada (limit > 0)
+    if (limit > 0) {
+      const [sessions, total] = await Promise.all([
+        prisma.session.findMany({
+          where: whereClause,
+          include: includeClause,
+          orderBy: { dateTime: "asc" },
+          skip: page * limit,
+          take: limit,
         }),
-      },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-          },
+        prisma.session.count({ where: whereClause }),
+      ])
+
+      return NextResponse.json({
+        data: sessions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
         },
-        payment: {
-          select: {
-            id: true,
-            amount: true,
-            status: true,
-            method: true,
-          },
-        },
-        package: {
-          select: {
-            id: true,
-            name: true,
-            totalSessions: true,
-          },
-        },
-      },
+      })
+    }
+
+    // Sem paginação (retorna todos - comportamento legado)
+    const sessions = await prisma.session.findMany({
+      where: whereClause,
+      include: includeClause,
       orderBy: { dateTime: "asc" },
     })
 
     return NextResponse.json(sessions)
-  } catch (error) {
-    console.error("Erro ao listar sessões:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -224,7 +275,7 @@ export async function POST(request: Request) {
             dateTime: dates[i],
             duration: data.duration,
             isCourtesy: data.isCourtesy || false,
-            observations: data.observations || null,
+            observations: data.observations ? sanitizeText(data.observations) : null,
             recurrenceGroupId,
             recurrencePattern: data.recurrencePattern,
             recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
@@ -251,6 +302,15 @@ export async function POST(request: Request) {
             },
           })
         }
+      }
+
+      // Registrar auditoria para cada sessão criada
+      for (const s of createdSessions) {
+        await logSessionEvent("SESSION_CREATE", session.user.id, s.id, {
+          patientId: data.patientId,
+          isRecurring: true,
+          recurrenceGroupId,
+        }, request)
       }
 
       return NextResponse.json({
@@ -281,8 +341,8 @@ export async function POST(request: Request) {
         dateTime,
         duration: data.duration,
         isCourtesy: data.isCourtesy || false,
-        observations: data.observations || null,
-        clinicalNotes: data.clinicalNotes || null,
+        observations: data.observations ? sanitizeText(data.observations) : null,
+        clinicalNotes: data.clinicalNotes ? sanitizeText(data.clinicalNotes) : null,
       },
       include: {
         patient: {
@@ -314,8 +374,13 @@ export async function POST(request: Request) {
       })
     }
 
+    // Registrar auditoria
+    await logSessionEvent("SESSION_CREATE", session.user.id, newSession.id, {
+      patientId: data.patientId,
+    }, request)
+
     return NextResponse.json(newSession, { status: 201 })
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -323,7 +388,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.error("Erro ao criar sessão:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

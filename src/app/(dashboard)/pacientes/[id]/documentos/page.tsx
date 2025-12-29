@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
+import { toast } from "sonner"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -148,8 +149,8 @@ export default function DocumentosPage() {
       } else if (response.status === 404) {
         router.push("/pacientes")
       }
-    } catch (error) {
-      console.error("Erro ao carregar paciente:", error)
+    } catch (error: unknown) {
+      toast.error("Ocorreu um erro")
     }
   }, [params.id, router])
 
@@ -164,8 +165,8 @@ export default function DocumentosPage() {
         )
         setDocuments(contractualDocs)
       }
-    } catch (error) {
-      console.error("Erro ao carregar documentos:", error)
+    } catch (error: unknown) {
+      toast.error("Ocorreu um erro")
     } finally {
       setLoading(false)
     }
@@ -212,11 +213,10 @@ export default function DocumentosPage() {
         fetchDocuments()
       } else {
         const data = await response.json()
-        alert(data.error || "Erro ao fazer upload")
+        toast.error(data.error || "Erro ao fazer upload")
       }
-    } catch (error) {
-      console.error("Erro ao fazer upload:", error)
-      alert("Erro ao fazer upload do documento")
+    } catch (error: unknown) {
+      toast.error("Erro ao fazer upload do documento")
     } finally {
       setUploading(false)
     }
@@ -236,8 +236,8 @@ export default function DocumentosPage() {
         setSelectedDoc(null)
         fetchDocuments()
       }
-    } catch (error) {
-      console.error("Erro ao excluir documento:", error)
+    } catch (error: unknown) {
+      toast.error("Ocorreu um erro")
     }
   }
 
@@ -265,9 +265,8 @@ export default function DocumentosPage() {
       link.click()
       window.document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("Erro ao baixar documento:", error)
-      alert("Erro ao baixar o documento")
+    } catch (error: unknown) {
+      toast.error("Erro ao baixar o documento")
     }
   }
 
@@ -301,7 +300,7 @@ export default function DocumentosPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -311,8 +310,8 @@ export default function DocumentosPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dados Contratuais</h1>
-            <p className="text-gray-600">{patient.name}</p>
+            <h1 className="text-xl font-medium text-gray-900 tracking-tight">Dados Contratuais</h1>
+            <p className="text-sm text-gray-500 mt-1">{patient.name}</p>
           </div>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
@@ -326,8 +325,8 @@ export default function DocumentosPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gray-100 rounded-full">
-                <FolderOpen className="h-5 w-5 text-gray-500" />
+              <div className="p-2 bg-gray-100 rounded-full">
+                <FolderOpen className="h-4 w-4 text-gray-400" />
               </div>
               <div>
                 <p className="text-2xl font-semibold text-gray-900">{documents.length}</p>
@@ -339,14 +338,14 @@ export default function DocumentosPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <FileText className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-green-50 rounded-full">
+                <FileText className="h-4 w-4 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold text-gray-900">
                   {documents.filter((d) => d.category === "CONTRACT").length}
                 </p>
-                <p className="text-sm text-gray-500">Contratos</p>
+                <p className="text-xs text-gray-500">Contratos</p>
               </div>
             </div>
           </CardContent>
@@ -354,16 +353,16 @@ export default function DocumentosPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <FileText className="h-6 w-6 text-yellow-600" />
+              <div className="p-2 bg-amber-50 rounded-full">
+                <FileText className="h-4 w-4 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold text-gray-900">
                   {documents.filter((d) =>
                     ["PAYMENT_RECEIPT", "PAYMENT_PROOF", "INVOICE"].includes(d.category)
                   ).length}
                 </p>
-                <p className="text-sm text-gray-500">Financeiros</p>
+                <p className="text-xs text-gray-500">Financeiros</p>
               </div>
             </div>
           </CardContent>
@@ -371,18 +370,18 @@ export default function DocumentosPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-full">
-                <FileText className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-purple-50 rounded-full">
+                <FileText className="h-4 w-4 text-purple-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-semibold text-gray-900">
                   {documents.filter((d) =>
                     ["CONSENT_TERM", "CONFIDENTIALITY_TERM", "GUARDIAN_AUTHORIZATION"].includes(
                       d.category
                     )
                   ).length}
                 </p>
-                <p className="text-sm text-gray-500">Termos</p>
+                <p className="text-xs text-gray-500">Termos</p>
               </div>
             </div>
           </CardContent>

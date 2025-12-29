@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { cloudinary } from "@/lib/cloudinary"
 
@@ -87,8 +88,8 @@ export async function GET(
     })
 
     return NextResponse.json(documents)
-  } catch (error) {
-    console.error("Erro ao listar documentos:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -229,8 +230,8 @@ export async function POST(
     })
 
     return NextResponse.json(document, { status: 201 })
-  } catch (error) {
-    console.error("Erro ao fazer upload:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro ao fazer upload do documento" },
       { status: 500 }

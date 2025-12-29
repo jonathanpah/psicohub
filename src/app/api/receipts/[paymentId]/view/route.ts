@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { fetchPrivateFile } from "@/lib/cloudinary"
 
@@ -45,16 +46,47 @@ export async function GET(
     const result = await fetchPrivateFile(payment.receiptUrl)
 
     if (!result.success) {
-      console.error("Erro ao buscar recibo:", result.error)
+      logApiError("API", "GET", result.error)
       return NextResponse.json(
         { error: "Erro ao buscar arquivo" },
         { status: 500 }
       )
     }
 
+    // Inferir tipo do arquivo pelo nome ou URL se não tiver receiptFileType
+    const inferFileType = (fileName: string | null, fileType: string | null, url: string | null): string => {
+      if (fileType && fileType !== "application/octet-stream") {
+        return fileType
+      }
+
+      // Verificar pelo nome do arquivo
+      const checkExtension = (str: string): string | null => {
+        const lower = str.toLowerCase()
+        if (lower.includes(".pdf")) return "application/pdf"
+        if (lower.includes(".jpg") || lower.includes(".jpeg")) return "image/jpeg"
+        if (lower.includes(".png")) return "image/png"
+        if (lower.includes(".gif")) return "image/gif"
+        if (lower.includes(".webp")) return "image/webp"
+        return null
+      }
+
+      if (fileName) {
+        const type = checkExtension(fileName)
+        if (type) return type
+      }
+
+      // Tentar inferir pela URL (Cloudinary inclui extensão)
+      if (url) {
+        const type = checkExtension(url)
+        if (type) return type
+      }
+
+      return fileType || "application/octet-stream"
+    }
+
     // Retornar arquivo com headers corretos para visualização inline
     const fileName = payment.receiptFileName || "recibo"
-    const fileType = payment.receiptFileType || "application/octet-stream"
+    const fileType = inferFileType(payment.receiptFileName, payment.receiptFileType, payment.receiptUrl)
 
     return new NextResponse(result.buffer, {
       headers: {
@@ -65,8 +97,8 @@ export async function GET(
         "X-Content-Type-Options": "nosniff",
       },
     })
-  } catch (error) {
-    console.error("Erro ao visualizar recibo:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

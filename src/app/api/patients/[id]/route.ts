@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+import { logPatientEvent } from "@/lib/audit"
+import { checkRateLimit, rateLimitConfigs, getClientIP, rateLimitExceededResponse } from "@/lib/rate-limit"
 
 const updatePatientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -10,13 +13,20 @@ const updatePatientSchema = z.object({
   birthDate: z.string().optional().nullable(),
   cpf: z.string().optional(),
   address: z.string().optional(),
-  // Dados do responsável
+  // Dados do responsável 1
   guardian: z.string().optional(),
   guardianCpf: z.string().optional(),
   guardianEmail: z.string().email("Email do responsável inválido").optional().or(z.literal("")),
   guardianPhone: z.string().optional(),
   guardianAddress: z.string().optional(),
   guardianRelation: z.string().optional(),
+  // Dados do responsável 2
+  guardian2: z.string().optional(),
+  guardian2Cpf: z.string().optional(),
+  guardian2Email: z.string().email("Email do responsável 2 inválido").optional().or(z.literal("")),
+  guardian2Phone: z.string().optional(),
+  guardian2Address: z.string().optional(),
+  guardian2Relation: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]).optional(),
 })
@@ -46,7 +56,6 @@ export async function GET(
       include: {
         sessions: {
           orderBy: { dateTime: "desc" },
-          take: 10,
           include: {
             payment: true,
             package: {
@@ -71,9 +80,12 @@ export async function GET(
       )
     }
 
+    // Registrar auditoria de visualização
+    await logPatientEvent("PATIENT_VIEW", session.user.id, patient.id, undefined, request)
+
     return NextResponse.json(patient)
-  } catch (error) {
-    console.error("Erro ao buscar paciente:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -131,13 +143,22 @@ export async function PUT(
         guardianPhone: data.guardianPhone || null,
         guardianAddress: data.guardianAddress || null,
         guardianRelation: data.guardianRelation || null,
+        guardian2: data.guardian2 || null,
+        guardian2Cpf: data.guardian2Cpf || null,
+        guardian2Email: data.guardian2Email || null,
+        guardian2Phone: data.guardian2Phone || null,
+        guardian2Address: data.guardian2Address || null,
+        guardian2Relation: data.guardian2Relation || null,
         notes: data.notes || null,
         status: data.status,
       },
     })
 
+    // Registrar auditoria de atualização
+    await logPatientEvent("PATIENT_UPDATE", session.user.id, patient.id, undefined, request)
+
     return NextResponse.json(patient)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -145,7 +166,7 @@ export async function PUT(
       )
     }
 
-    console.error("Erro ao atualizar paciente:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -158,6 +179,13 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting para proteção contra exclusão em massa
+  const clientIP = getClientIP(request)
+  const rateLimitResult = await checkRateLimit(`delete:${clientIP}`, rateLimitConfigs.delete)
+  if (!rateLimitResult.success) {
+    return rateLimitExceededResponse(rateLimitResult)
+  }
+
   try {
     const session = await auth()
 
@@ -185,13 +213,16 @@ export async function DELETE(
       )
     }
 
+    // Registrar auditoria antes de excluir (para ter o nome do paciente)
+    await logPatientEvent("PATIENT_DELETE", session.user.id, id, undefined, request)
+
     await prisma.patient.delete({
       where: { id },
     })
 
     return NextResponse.json({ message: "Paciente excluído com sucesso" })
-  } catch (error) {
-    console.error("Erro ao excluir paciente:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

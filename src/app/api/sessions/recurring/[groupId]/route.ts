@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
+import { logApiError } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
+import { checkRateLimit, rateLimitConfigs, getClientIP, rateLimitExceededResponse } from "@/lib/rate-limit"
 
 const deleteSchema = z.object({
   deleteType: z.enum(["SINGLE", "FUTURE", "ALL"]),
@@ -71,8 +73,8 @@ export async function GET(
       pattern: sessions[0].recurrencePattern,
       patientName: sessions[0].patient.name,
     })
-  } catch (error) {
-    console.error("Erro ao buscar grupo de recorrência:", error)
+  } catch (error: unknown) {
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -85,6 +87,13 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ groupId: string }> }
 ) {
+  // Rate limiting para proteção contra exclusão em massa
+  const clientIP = getClientIP(request)
+  const rateLimitResult = await checkRateLimit(`delete:${clientIP}`, rateLimitConfigs.delete)
+  if (!rateLimitResult.success) {
+    return rateLimitExceededResponse(rateLimitResult)
+  }
+
   try {
     const session = await auth()
     const { groupId } = await params
@@ -203,7 +212,7 @@ export async function DELETE(
       deletedCount,
       message: `${deletedCount} sessão(ões) excluída(s)`,
     })
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.issues[0].message },
@@ -211,7 +220,7 @@ export async function DELETE(
       )
     }
 
-    console.error("Erro ao excluir sessões:", error)
+    logApiError("API", "ERROR", error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

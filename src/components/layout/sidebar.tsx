@@ -26,7 +26,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-60 bg-white/80 backdrop-blur-xl border-r border-gray-100 min-h-screen flex flex-col">
+    <aside className="w-60 bg-white/80 backdrop-blur-xl border-r border-gray-100 min-h-screen flex flex-col" role="complementary" aria-label="Menu lateral">
       <div className="px-6 py-8">
         <h1 className="text-xl font-semibold tracking-tight text-gray-900">
           PsicoHub
@@ -36,13 +36,13 @@ export function Sidebar() {
         </p>
       </div>
 
-      <nav className="flex-1 px-3">
+      <nav className="flex-1 px-3" aria-label="Menu principal">
         {/* Botão de Novo Atendimento */}
         <Link
           href="/novo-atendimento"
           className="flex items-center gap-3 px-3 py-2.5 mb-4 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-all duration-200"
         >
-          <PlusCircle className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          <PlusCircle className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden="true" />
           Novo Atendimento
         </Link>
 
@@ -59,11 +59,12 @@ export function Sidebar() {
                       ? "bg-gray-900 text-white font-medium"
                       : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                   )}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <item.icon className={cn(
                     "h-[18px] w-[18px]",
                     isActive ? "text-white" : "text-gray-400"
-                  )} strokeWidth={1.5} />
+                  )} strokeWidth={1.5} aria-hidden="true" />
                   {item.label}
                 </Link>
               </li>
@@ -76,8 +77,9 @@ export function Sidebar() {
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-3 px-3 py-2.5 w-full text-sm text-gray-400 hover:text-gray-600 rounded-lg transition-all duration-200"
+          aria-label="Sair da conta"
         >
-          <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          <LogOut className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden="true" />
           Sair
         </button>
       </div>

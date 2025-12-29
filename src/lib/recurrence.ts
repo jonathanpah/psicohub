@@ -1,6 +1,15 @@
-import { addWeeks, addMonths, isBefore, isEqual } from "date-fns"
+import { addWeeks, addMonths, isBefore, isEqual, format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export type RecurrencePattern = "WEEKLY" | "BIWEEKLY" | "MONTHLY"
+
+export const RECURRENCE_PATTERNS: { value: RecurrencePattern; label: string }[] = [
+  { value: "WEEKLY", label: "Semanal" },
+  { value: "BIWEEKLY", label: "Quinzenal" },
+  { value: "MONTHLY", label: "Mensal" },
+]
+
+export const RECURRENCE_COUNTS = [4, 8, 12, 16, 24, 52]
 
 interface RecurrenceOptions {
   startDate: Date
@@ -63,4 +72,28 @@ export function getRecurrencePatternLabel(pattern: RecurrencePattern): string {
     MONTHLY: "Mensal",
   }
   return labels[pattern]
+}
+
+/**
+ * Formata uma data para exibição no preview
+ * @param date - Data a formatar
+ * @returns String formatada (ex: "Seg, 15 Jan 14:00")
+ */
+export function formatRecurrenceDate(date: Date): string {
+  return format(date, "EEE, d MMM HH:mm", { locale: ptBR })
+}
+
+/**
+ * Retorna descrição resumida da recorrência
+ * @param pattern - Padrão de recorrência
+ * @param count - Número de sessões
+ * @returns Descrição (ex: "8 sessões, toda semana")
+ */
+export function getRecurrenceDescription(pattern: RecurrencePattern, count: number): string {
+  const patternText: Record<RecurrencePattern, string> = {
+    WEEKLY: "toda semana",
+    BIWEEKLY: "a cada 2 semanas",
+    MONTHLY: "todo mês",
+  }
+  return `${count} sessões, ${patternText[pattern]}`
 }

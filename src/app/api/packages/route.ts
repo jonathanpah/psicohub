@@ -18,6 +18,7 @@ const createPackageSchema = z.object({
     dateTime: z.string(),
     duration: z.number().min(15).max(180).default(50),
     observations: z.string().optional(),
+    recurrenceIndex: z.number().optional(),
   })).min(1, "Pelo menos uma sessão deve ser agendada"),
   // Metadados
   packageName: z.string().optional(),
@@ -29,6 +30,11 @@ const createPackageSchema = z.object({
   receiptFileName: z.string().optional(),
   receiptFileType: z.string().optional(),
   receiptFileSize: z.number().optional(),
+  // Recorrência
+  isRecurring: z.boolean().optional(),
+  recurrencePattern: z.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]).optional(),
+  recurrenceCount: z.number().min(1).max(52).optional(),
+  recurrenceGroupId: z.string().optional(),
 })
 
 // GET - Listar pacotes do usuário
@@ -252,6 +258,11 @@ export async function POST(request: Request) {
             observations: sessionData.observations || null,
             packageId: sessionPackage.id,
             packageOrder: i + 1,
+            // Campos de recorrência
+            recurrenceGroupId: data.isRecurring ? data.recurrenceGroupId : null,
+            recurrencePattern: data.isRecurring ? data.recurrencePattern : null,
+            recurrenceCount: data.isRecurring ? data.recurrenceCount : null,
+            recurrenceIndex: sessionData.recurrenceIndex || null,
           },
         })
 

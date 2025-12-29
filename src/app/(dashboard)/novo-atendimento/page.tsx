@@ -16,6 +16,7 @@ import {
   NotesCard,
   SummaryActions,
   ErrorState,
+  RecurrenceOptions,
 } from "./components"
 
 function NovoAtendimentoContent() {
@@ -48,6 +49,17 @@ function NovoAtendimentoContent() {
     receipt,
     setReceipt,
     sessionSlots,
+    // Recurrence
+    isRecurring,
+    setIsRecurring,
+    recurrencePattern,
+    setRecurrencePattern,
+    recurrenceCount,
+    setRecurrenceCount,
+    recurrenceConflicts,
+    isCheckingConflicts,
+    generatedDates,
+    // Computed
     calculatedPricePerSession,
     filledSessions,
     isValid,
@@ -71,16 +83,28 @@ function NovoAtendimentoContent() {
       return existingPackage.pricePerSession * filledSessions.length
     }
     if (type === "SESSION") {
-      return parseCurrency(sessionPrice) * filledSessions.length
+      // Se recorrente, usar a quantidade de datas geradas
+      const sessionsCount = isRecurring && generatedDates.length > 0
+        ? generatedDates.length
+        : filledSessions.length
+      return parseCurrency(sessionPrice) * sessionsCount
     }
     return parseCurrency(packagePrice)
+  }
+
+  // Get sessions count for success screen (considering recurrence)
+  const getSessionsCount = () => {
+    if (isRecurring && generatedDates.length > 0) {
+      return generatedDates.length
+    }
+    return filledSessions.length
   }
 
   if (success) {
     return (
       <SuccessScreen
         isAddToPackageMode={isAddToPackageMode}
-        sessionsCount={filledSessions.length}
+        sessionsCount={getSessionsCount()}
         patientName={getPatientName()}
         totalValue={getTotalValue()}
       />
@@ -201,10 +225,25 @@ function NovoAtendimentoContent() {
           sessionSlots={sessionSlots}
           filledCount={filledSessions.length}
           maxSlots={type === "PACKAGE" ? parseInt(totalSessions) : undefined}
-          onAddSlot={addSessionSlot}
+          onAddSlot={isRecurring ? undefined : addSessionSlot}
           onRemoveSlot={removeSessionSlot}
           onUpdateSlot={updateSessionSlot}
         />
+
+        {/* Opção de Recorrência - apenas se houver 1 sessão preenchida */}
+        {filledSessions.length === 1 && (
+          <RecurrenceOptions
+            enabled={isRecurring}
+            onEnabledChange={setIsRecurring}
+            pattern={recurrencePattern}
+            onPatternChange={setRecurrencePattern}
+            count={recurrenceCount}
+            onCountChange={setRecurrenceCount}
+            generatedDates={generatedDates}
+            conflicts={recurrenceConflicts}
+            isChecking={isCheckingConflicts}
+          />
+        )}
 
         <NotesCard notes={notes} onNotesChange={setNotes} />
 
@@ -218,7 +257,7 @@ function NovoAtendimentoContent() {
         />
 
         <SummaryActions
-          filledSessionsCount={filledSessions.length}
+          filledSessionsCount={getSessionsCount()}
           type={type}
           sessionPrice={sessionPrice}
           packagePrice={packagePrice}

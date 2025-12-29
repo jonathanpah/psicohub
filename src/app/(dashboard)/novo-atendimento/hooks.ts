@@ -1,10 +1,15 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { parseCurrency } from "@/components/ui/masked-input"
 import type { FileData } from "@/components/ui/file-upload"
 import type { Patient, SessionSlot, ExistingPackage } from "./types"
+import {
+  type RecurrencePattern,
+  generateRecurrenceDates,
+  generateRecurrenceGroupId,
+} from "@/lib/recurrence"
 
 export function useNovoAtendimento() {
   const router = useRouter()
@@ -36,6 +41,13 @@ export function useNovoAtendimento() {
   const [sessionSlots, setSessionSlots] = useState<SessionSlot[]>([
     { id: "1", date: "", time: "", duration: 50 },
   ])
+
+  // Recurrence state
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>("WEEKLY")
+  const [recurrenceCount, setRecurrenceCount] = useState(8)
+  const [recurrenceConflicts, setRecurrenceConflicts] = useState<string[]>([])
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false)
 
   // Ref para controlar navegação após unmount
   const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -112,6 +124,68 @@ export function useNovoAtendimento() {
     }
   }
 
+  // Gerar datas recorrentes baseado no primeiro slot
+  const generatedDates = useMemo(() => {
+    if (!isRecurring) return []
+    const firstSlot = sessionSlots[0]
+    if (!firstSlot?.date || !firstSlot?.time) return []
+
+    const startDateTime = new Date(`${firstSlot.date}T${firstSlot.time}`)
+    if (isNaN(startDateTime.getTime())) return []
+
+    return generateRecurrenceDates({
+      startDate: startDateTime,
+      pattern: recurrencePattern,
+      occurrences: recurrenceCount,
+    })
+  }, [isRecurring, sessionSlots, recurrencePattern, recurrenceCount])
+
+  // Verificar conflitos quando as datas mudam
+  const checkConflicts = useCallback(async (dates: Date[], duration: number) => {
+    if (dates.length === 0) {
+      setRecurrenceConflicts([])
+      return
+    }
+
+    setIsCheckingConflicts(true)
+    try {
+      const response = await fetch("/api/sessions/check-conflicts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dates: dates.map((d) => d.toISOString()),
+          duration,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setRecurrenceConflicts(data.conflicts || [])
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setIsCheckingConflicts(false)
+    }
+  }, [])
+
+  // Effect para verificar conflitos quando datas mudam
+  useEffect(() => {
+    if (generatedDates.length > 0) {
+      const duration = sessionSlots[0]?.duration || 50
+      checkConflicts(generatedDates, duration)
+    } else {
+      setRecurrenceConflicts([])
+    }
+  }, [generatedDates, sessionSlots, checkConflicts])
+
+  // Resetar recorrência quando desabilita
+  useEffect(() => {
+    if (!isRecurring) {
+      setRecurrenceConflicts([])
+    }
+  }, [isRecurring])
+
   function addSessionSlot() {
     const newId = Date.now().toString()
     setSessionSlots([...sessionSlots, { id: newId, date: "", time: "", duration: 50 }])
@@ -138,11 +212,16 @@ export function useNovoAtendimento() {
   // Validar sessões preenchidas
   const filledSessions = sessionSlots.filter((s) => s.date && s.time)
 
+  // Validação considera recorrência
+  const hasRecurrenceConflicts = isRecurring && recurrenceConflicts.length > 0
+  const effectiveSessionsCount = isRecurring ? generatedDates.length : filledSessions.length
+
   // Validation differs based on mode
   const isValid = isAddToPackageMode
-    ? !!(existingPackage && filledSessions.length > 0 && filledSessions.length <= existingPackage.remainingSlots)
+    ? !!(existingPackage && filledSessions.length > 0 && filledSessions.length <= existingPackage.remainingSlots && !hasRecurrenceConflicts)
     : !!(selectedPatient &&
-      filledSessions.length > 0 &&
+      effectiveSessionsCount > 0 &&
+      !hasRecurrenceConflicts &&
       ((type === "SESSION" && parseCurrency(sessionPrice) >= 0) ||
         (type === "PACKAGE" && parseInt(totalSessions) > 0 && parseCurrency(packagePrice) >= 0)))
 
@@ -154,11 +233,21 @@ export function useNovoAtendimento() {
     setError(null)
 
     try {
-      // Preparar sessões
-      const sessions = filledSessions.map((slot) => ({
-        dateTime: new Date(`${slot.date}T${slot.time}`).toISOString(),
-        duration: slot.duration,
-      }))
+      // Preparar sessões - usar recorrência se habilitada
+      let sessions
+      if (isRecurring && generatedDates.length > 0) {
+        const firstSlot = sessionSlots[0]
+        sessions = generatedDates.map((date, index) => ({
+          dateTime: date.toISOString(),
+          duration: firstSlot?.duration || 50,
+          recurrenceIndex: index + 1,
+        }))
+      } else {
+        sessions = filledSessions.map((slot) => ({
+          dateTime: new Date(`${slot.date}T${slot.time}`).toISOString(),
+          duration: slot.duration,
+        }))
+      }
 
       if (isAddToPackageMode && existingPackage) {
         // Mode: Add sessions to existing package
@@ -210,6 +299,13 @@ export function useNovoAtendimento() {
               receiptFileType: receipt.fileType,
               receiptFileSize: receipt.fileSize,
             } : {}),
+          } : {}),
+          // Recurrence data
+          ...(isRecurring ? {
+            isRecurring: true,
+            recurrencePattern,
+            recurrenceCount,
+            recurrenceGroupId: generateRecurrenceGroupId(),
           } : {}),
         }
 
@@ -267,6 +363,16 @@ export function useNovoAtendimento() {
     receipt,
     setReceipt,
     sessionSlots,
+    // Recurrence state
+    isRecurring,
+    setIsRecurring,
+    recurrencePattern,
+    setRecurrencePattern,
+    recurrenceCount,
+    setRecurrenceCount,
+    recurrenceConflicts,
+    isCheckingConflicts,
+    generatedDates,
     // Computed
     calculatedPricePerSession,
     filledSessions,

@@ -225,7 +225,7 @@ export function ActivePackagesCard({ patientId, packages, onRefresh }: ActivePac
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <Package className="h-4 w-4 text-gray-400" />
-            Pacotes Ativos
+            Sessões Ativas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -251,7 +251,7 @@ export function ActivePackagesCard({ patientId, packages, onRefresh }: ActivePac
                         onClick={() => handleDeleteClick(pkg)}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir Pacote
+                        Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -296,22 +296,22 @@ export function ActivePackagesCard({ patientId, packages, onRefresh }: ActivePac
         </CardContent>
       </Card>
 
-      {/* Delete Package Dialog */}
+      {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Pacote</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Sessões</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este pacote?
+              Tem certeza que deseja excluir {packageToDelete?.name || "este agendamento"}?
               {packageToDelete && packageToDelete.stats.completed > 0 && (
                 <span className="block mt-2 text-red-600 font-medium">
-                  Este pacote possui {packageToDelete.stats.completed} sessão(ões) realizada(s).
-                  Pacotes com sessões realizadas não podem ser excluídos.
+                  Existem {packageToDelete.stats.completed} sessão(ões) realizada(s).
+                  Agendamentos com sessões realizadas não podem ser excluídos.
                 </span>
               )}
               {packageToDelete && packageToDelete.stats.completed === 0 && (
                 <span className="block mt-2 text-amber-600 font-medium">
-                  Todas as sessões agendadas e pagamentos pendentes serão excluídos.
+                  Todas as sessões, pagamentos e dados relacionados serão permanentemente excluídos.
                 </span>
               )}
             </AlertDialogDescription>

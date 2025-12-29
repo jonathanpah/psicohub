@@ -229,9 +229,8 @@ export async function DELETE(
         userId: session.user.id,
       },
       include: {
-        sessions: {
-          where: { status: "COMPLETED" },
-        },
+        sessions: true,
+        pricingPlan: true,
       },
     })
 
@@ -242,16 +241,38 @@ export async function DELETE(
       )
     }
 
-    if (existingPackage.sessions.length > 0) {
+    // Verificar se tem sessões completadas
+    const completedSessions = existingPackage.sessions.filter(
+      (s) => s.status === "COMPLETED"
+    )
+
+    if (completedSessions.length > 0) {
       return NextResponse.json(
         { error: "Não é possível excluir pacote com sessões realizadas" },
         { status: 400 }
       )
     }
 
-    // Excluir em cascata (sessões, payments, etc.)
-    await prisma.sessionPackage.delete({
-      where: { id },
+    // Excluir em cascata usando transação
+    // Ordem: Sessions -> SessionPackage -> PricingPlan
+    // Nota: Payment tem onDelete: Cascade de Session, então será deletado automaticamente
+    await prisma.$transaction(async (tx) => {
+      // 1. Deletar todas as sessões do pacote (Payments serão deletados automaticamente via cascade)
+      await tx.session.deleteMany({
+        where: { packageId: id },
+      })
+
+      // 2. Deletar o pacote
+      await tx.sessionPackage.delete({
+        where: { id },
+      })
+
+      // 3. Deletar o PricingPlan associado
+      if (existingPackage.pricingPlanId) {
+        await tx.pricingPlan.delete({
+          where: { id: existingPackage.pricingPlanId },
+        })
+      }
     })
 
     return NextResponse.json({ success: true })

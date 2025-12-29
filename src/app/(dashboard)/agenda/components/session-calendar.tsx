@@ -29,6 +29,18 @@ function formatTimeShort(dateString: string) {
   return `${hours}h${minutes.toString().padStart(2, "0")}`
 }
 
+// Extrai primeiro e último nome
+// "Maria da Silva Santos" → "Maria Santos"
+// "João Pedro" → "João Pedro"
+// "Ana" → "Ana"
+function getShortName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length <= 2) {
+    return fullName
+  }
+  return `${parts[0]} ${parts[parts.length - 1]}`
+}
+
 export function SessionCalendar({
   sessions,
   loading,
@@ -48,7 +60,7 @@ export function SessionCalendar({
   }
 
   const calendarEvents = sessions.map((session) => {
-    let title = session.patient.name
+    let title = getShortName(session.patient.name)
 
     // Mostrar X/Y para pacotes
     if (session.packageId && session.packageOrder && session.package?.totalSessions) {

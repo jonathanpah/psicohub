@@ -19,7 +19,7 @@ interface SessionSlotsProps {
   filledCount: number
   maxSlots?: number
   showRemainingMessage?: boolean
-  onAddSlot: () => void
+  onAddSlot?: () => void
   onRemoveSlot: (id: string) => void
   onUpdateSlot: (id: string, field: keyof SessionSlot, value: string | number) => void
 }
@@ -48,16 +48,18 @@ export function SessionSlots({
             </span>
           )}
         </CardTitle>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onAddSlot}
-          disabled={!canAddMore}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Adicionar
-        </Button>
+        {onAddSlot && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onAddSlot}
+            disabled={!canAddMore}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {sessionSlots.map((slot, index) => (
@@ -120,7 +122,7 @@ export function SessionSlots({
           </div>
         ))}
 
-        {remainingSlots !== null && remainingSlots > 0 && (
+        {onAddSlot && remainingSlots !== null && remainingSlots > 0 && (
           <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-lg">
             <p className="text-sm text-gray-500">
               {showRemainingMessage
